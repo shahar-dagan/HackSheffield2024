@@ -71,6 +71,133 @@ def get_initial_questions(prompt):
     return json.loads(response.choices[0].message.content.strip())
 
 
+def analyze_responses(prompt, questions, answers):
+    """Analyze user's responses and create a detailed learning plan"""
+    # Create a formatted string of Q&A pairs
+    qa_pairs = "\n".join(
+        [f"Q: {q}\nA: {a}" for q, a in zip(questions, answers)]
+    )
+
+    messages = [
+        {
+            "role": "system",
+            "content": """You are an expert teacher who creates detailed learning plans.
+            Based on the user's topic and their responses to the clarifying questions,
+            create a structured learning plan that includes:
+            
+            1. Core Concepts: List the fundamental concepts they need to understand
+            2. Learning Path: Break down the topic into sequential learning steps
+            3. Key Relationships: Identify important connections between concepts
+            4. Practical Applications: Real-world examples or applications
+            5. Common Challenges: Potential stumbling blocks and how to overcome them
+            
+            Format your response with clear headings and bullet points.""",
+        },
+        {
+            "role": "user",
+            "content": f"""Topic: {prompt}
+
+Clarifying Questions and Answers:
+{qa_pairs}
+
+Please create a detailed learning plan based on these responses.""",
+        },
+    ]
+
+    response = client.chat.completions.create(
+        model="gpt-4", messages=messages, temperature=0.7, max_tokens=1000
+    )
+
+    return response.choices[0].message.content.strip()
+
+
+def generate_enhanced_diagram(learning_plan):
+    """Generate a detailed diagram based on the learning plan"""
+    messages = [
+        {
+            "role": "system",
+            "content": """You are an expert at creating educational diagrams.
+            Create a detailed SVG diagram that visualizes the learning plan.
+            
+            Requirements:
+            1. Start with <svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+            2. Use a clear hierarchical structure with main concepts at the top
+            3. Include these elements:
+               - Rectangles for main concepts (<rect>)
+               - Text labels (<text>)
+               - Connecting lines or arrows (<path>)
+               - Different colors for different types of concepts
+            4. End with </svg>
+            5. Use only valid SVG elements and attributes
+            6. Ensure all text is readable and properly positioned
+            
+            DO NOT include any explanation or markdown, ONLY output the raw SVG code.""",
+        },
+        {
+            "role": "user",
+            "content": f"""Create a comprehensive diagram based on this learning plan:
+            {learning_plan}
+            
+            Remember to:
+            1. Only output the SVG code
+            2. Start with <svg width="800" height="600"
+            3. Include all necessary elements
+            4. End with </svg>""",
+        },
+    ]
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4", messages=messages, temperature=0.7, max_tokens=2000
+        )
+
+        svg_content = response.choices[0].message.content.strip()
+
+        # Clean up the SVG content
+        svg_content = (
+            svg_content.replace("```svg", "").replace("```", "").strip()
+        )
+
+        # Basic validation
+        if not svg_content.startswith("<svg"):
+            svg_content = (
+                '<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">'
+                + svg_content
+            )
+
+        if not svg_content.endswith("</svg>"):
+            svg_content = svg_content + "</svg>"
+
+        # Ensure there's at least some content
+        if len(svg_content) < 100:
+            # Create a simple fallback diagram
+            svg_content = """
+            <svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+                <rect x="50" y="50" width="700" height="500" fill="#f0f0f0" stroke="#333"/>
+                <text x="400" y="300" text-anchor="middle" font-size="20">
+                    Learning Plan Visualization
+                </text>
+            </svg>
+            """.strip()
+
+        return svg_content
+
+    except Exception as e:
+        # Create an error message diagram
+        error_svg = f"""
+        <svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+            <rect x="50" y="50" width="700" height="500" fill="#fee" stroke="#f00"/>
+            <text x="400" y="250" text-anchor="middle" font-size="20" fill="#700">
+                Error Generating Diagram
+            </text>
+            <text x="400" y="300" text-anchor="middle" font-size="16" fill="#700">
+                Please try again with more specific details
+            </text>
+        </svg>
+        """.strip()
+        return error_svg
+
+
 # Start with the interactive learning journey
 st.title("Interactive Learning Diagram Generator")
 
