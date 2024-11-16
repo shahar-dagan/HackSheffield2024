@@ -5,6 +5,12 @@
       "prompt": "Tell me about the role of hitler in WW2\n",
       "svg_content": "<svg width=\"400\" height=\"200\" xmlns=\"http://www.w3.org/2000/svg\">\n  <!-- Hitler -->\n  <rect x=\"50\" y=\"50\" width=\"100\" height=\"100\" fill=\"#FF5733\" />\n  <text x=\"100\" y=\"30\" font-family=\"Arial\" font-size=\"16\" fill=\"black\" text-anchor=\"middle\">Hitler</text>\n  \n  <!-- WW2 -->\n  <rect x=\"250\" y=\"50\" width=\"100\" height=\"100\" fill=\"#3355FF\" />\n  <text x=\"300\" y=\"30\" font-family=\"Arial\" font-size=\"16\" fill=\"black\" text-anchor=\"middle\">WW2</text>\n  \n  <!-- Arrow -->\n  <line x1=\"150\" y1=\"100\" x2=\"250\" y2=\"100\" stroke=\"black\" stroke-width=\"2\" marker-end=\"url(#arrowhead)\" />\n  \n  <!-- Arrowhead marker -->\n  <defs>\n    <marker id=\"arrowhead\" markerWidth=\"10\" markerHeight=\"7\" refX=\"0\" refY=\"3.5\" orient=\"auto\">\n      <polygon points=\"0 0, 10 3.5, 0 7\" fill=\"black\" />\n    </marker>\n  </defs>\n</svg>",
       "timestamp": "2024-11-16T20:50:52.394803"
+    },
+    {
+      "id": "18f35aca-50cf-480f-a9c2-5ed4f3dd4224",
+      "prompt": "Create a diagram to show how neural networks work ",
+      "svg_content": "<svg width=\"400\" height=\"200\" xmlns=\"http://www.w3.org/2000/svg\">\n    <!-- Input layer -->\n    <circle cx=\"50\" cy=\"100\" r=\"20\" fill=\"skyblue\" />\n    <circle cx=\"50\" cy=\"150\" r=\"20\" fill=\"skyblue\" />\n    \n    <!-- Hidden layer -->\n    <circle cx=\"200\" cy=\"75\" r=\"20\" fill=\"lightgreen\" />\n    <circle cx=\"200\" cy=\"125\" r=\"20\" fill=\"lightgreen\" />\n    \n    <!-- Output layer -->\n    <circle cx=\"350\" cy=\"100\" r=\"20\" fill=\"salmon\" />\n    \n    <!-- Connecting lines -->\n    <line x1=\"70\" y1=\"100\" x2=\"180\" y2=\"75\" stroke=\"black\" />\n    <line x1=\"70\" y1=\"100\" x2=\"180\" y2=\"125\" stroke=\"black\" />\n    \n    <line x1=\"70\" y1=\"150\" x2=\"180\" y2=\"75\" stroke=\"black\" />\n    <line x1=\"70\" y1=\"150\" x2=\"180\" y2=\"125\" stroke=\"black\" />\n    \n    <line x1=\"220\" y1=\"75\" x2=\"330\" y2=\"100\" stroke=\"black\" />\n    <line x1=\"220\" y1=\"125\" x2=\"330\" y2=\"100\" stroke=\"black\" />\n</svg>",
+      "timestamp": "2024-11-16T21:00:56.546043"
     }
   ]
 }
