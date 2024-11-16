@@ -5,6 +5,7 @@ import os
 import json
 from datetime import datetime
 import uuid
+import streamlit.components.v1 as components
 
 # Load environment variables
 load_dotenv()
@@ -111,91 +112,291 @@ Please create a detailed learning plan based on these responses.""",
     return response.choices[0].message.content.strip()
 
 
-def generate_enhanced_diagram(learning_plan):
-    """Generate a detailed diagram based on the learning plan"""
+def create_d3_diagram_data(learning_plan):
+    """Convert learning plan into D3 hierarchical format"""
     messages = [
         {
             "role": "system",
-            "content": """You are an expert at creating educational diagrams.
-            Create a detailed SVG diagram that visualizes the learning plan.
+            "content": """You are a diagram creation assistant. Convert the learning plan into a D3.js compatible JSON structure.
             
-            Requirements:
-            1. Start with <svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
-            2. Use a clear hierarchical structure with main concepts at the top
-            3. Include these elements:
-               - Rectangles for main concepts (<rect>)
-               - Text labels (<text>)
-               - Connecting lines or arrows (<path>)
-               - Different colors for different types of concepts
-            4. End with </svg>
-            5. Use only valid SVG elements and attributes
-            6. Ensure all text is readable and properly positioned
-            
-            DO NOT include any explanation or markdown, ONLY output the raw SVG code.""",
+            Rules:
+            1. The output must be ONLY valid JSON
+            2. Use this exact structure:
+            {
+                "name": "Main Topic",
+                "children": [
+                    {
+                        "name": "Section 1",
+                        "description": "Description of section 1",
+                        "children": [
+                            {
+                                "name": "Subsection 1.1",
+                                "description": "Description of subsection 1.1"
+                            }
+                        ]
+                    }
+                ]
+            }
+            3. Do not include any explanation or markdown formatting
+            4. Ensure all JSON is properly escaped
+            """,
         },
         {
             "role": "user",
-            "content": f"""Create a comprehensive diagram based on this learning plan:
-            {learning_plan}
-            
-            Remember to:
-            1. Only output the SVG code
-            2. Start with <svg width="800" height="600"
-            3. Include all necessary elements
-            4. End with </svg>""",
+            "content": f"Convert this learning plan into D3 hierarchical JSON (respond with ONLY the JSON):\n{learning_plan}",
         },
     ]
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4", messages=messages, temperature=0.7, max_tokens=2000
+            model="gpt-4",
+            messages=messages,
+            temperature=0.3,  # Lower temperature for more consistent output
+            max_tokens=2000,
         )
 
-        svg_content = response.choices[0].message.content.strip()
+        # Get the response content
+        content = response.choices[0].message.content.strip()
 
-        # Clean up the SVG content
-        svg_content = (
-            svg_content.replace("```svg", "").replace("```", "").strip()
-        )
+        # Clean up the response
+        # Remove any potential markdown code blocks
+        content = content.replace("```json", "").replace("```", "").strip()
 
-        # Basic validation
-        if not svg_content.startswith("<svg"):
-            svg_content = (
-                '<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">'
-                + svg_content
-            )
+        # Try to parse the JSON
+        try:
+            d3_data = json.loads(content)
+        except json.JSONDecodeError:
+            # Fallback to a simple structure if parsing fails
+            d3_data = {
+                "name": learning_plan.split("\n")[0][
+                    :50
+                ],  # Use first line as main topic
+                "children": [
+                    {
+                        "name": "Topic 1",
+                        "description": "Please try regenerating the diagram",
+                    }
+                ],
+            }
 
-        if not svg_content.endswith("</svg>"):
-            svg_content = svg_content + "</svg>"
-
-        # Ensure there's at least some content
-        if len(svg_content) < 100:
-            # Create a simple fallback diagram
-            svg_content = """
-            <svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
-                <rect x="50" y="50" width="700" height="500" fill="#f0f0f0" stroke="#333"/>
-                <text x="400" y="300" text-anchor="middle" font-size="20">
-                    Learning Plan Visualization
-                </text>
-            </svg>
-            """.strip()
-
-        return svg_content
+        return d3_data
 
     except Exception as e:
-        # Create an error message diagram
-        error_svg = f"""
-        <svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
-            <rect x="50" y="50" width="700" height="500" fill="#fee" stroke="#f00"/>
-            <text x="400" y="250" text-anchor="middle" font-size="20" fill="#700">
-                Error Generating Diagram
-            </text>
-            <text x="400" y="300" text-anchor="middle" font-size="16" fill="#700">
-                Please try again with more specific details
-            </text>
-        </svg>
-        """.strip()
-        return error_svg
+        # Return a minimal valid structure if anything fails
+        return {
+            "name": "Error Creating Diagram",
+            "children": [{"name": "Please try again", "description": str(e)}],
+        }
+
+
+def create_interactive_diagram():
+    """Create an interactive D3.js diagram"""
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <style>
+            .node {
+                cursor: pointer;
+            }
+            .node circle {
+                fill: #fff;
+                stroke: steelblue;
+                stroke-width: 3px;
+            }
+            .node text {
+                font: 12px sans-serif;
+            }
+            .link {
+                fill: none;
+                stroke: #ccc;
+                stroke-width: 2px;
+            }
+            .tooltip {
+                position: absolute;
+                background: white;
+                border: 1px solid #ddd;
+                padding: 10px;
+                border-radius: 5px;
+                display: none;
+            }
+            .question-form {
+                position: fixed;
+                bottom: 20px;
+                left: 20px;
+                background: white;
+                padding: 10px;
+                border-radius: 5px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            }
+        </style>
+    </head>
+    <body>
+        <div id="diagram"></div>
+        <div class="tooltip"></div>
+        <div class="question-form">
+            <input type="text" id="question" placeholder="Ask a question about this topic...">
+            <button onclick="askQuestion()">Ask</button>
+        </div>
+        <script>
+            // D3.js visualization code here
+            const data = DIAGRAM_DATA;  // This will be replaced with actual data
+            
+            const width = 800;
+            const height = 600;
+            
+            const tree = d3.tree().size([height, width - 160]);
+            
+            const root = d3.hierarchy(data);
+            
+            const svg = d3.select("#diagram")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .append("g")
+                .attr("transform", "translate(80,0)");
+            
+            const link = svg.selectAll(".link")
+                .data(tree(root).links())
+                .enter().append("path")
+                .attr("class", "link")
+                .attr("d", d3.linkHorizontal()
+                    .x(d => d.y)
+                    .y(d => d.x));
+            
+            const node = svg.selectAll(".node")
+                .data(root.descendants())
+                .enter().append("g")
+                .attr("class", "node")
+                .attr("transform", d => `translate(${d.y},${d.x})`);
+            
+            node.append("circle")
+                .attr("r", 10)
+                .on("click", function(event, d) {
+                    showTooltip(event, d);
+                });
+            
+            node.append("text")
+                .attr("dy", ".35em")
+                .attr("x", d => d.children ? -13 : 13)
+                .style("text-anchor", d => d.children ? "end" : "start")
+                .text(d => d.data.name);
+            
+            function showTooltip(event, d) {
+                const tooltip = d3.select(".tooltip");
+                tooltip.style("display", "block")
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 10) + "px")
+                    .html(`
+                        <h3>${d.data.name}</h3>
+                        <p>${d.data.description || ""}</p>
+                    `);
+            }
+            
+            function askQuestion() {
+                const question = document.getElementById("question").value;
+                // Send question to backend
+                window.parent.postMessage({
+                    type: "askQuestion",
+                    question: question
+                }, "*");
+            }
+            
+            // Close tooltip when clicking elsewhere
+            document.addEventListener("click", function(event) {
+                if (!event.target.closest(".node")) {
+                    d3.select(".tooltip").style("display", "none");
+                }
+            });
+        </script>
+    </body>
+    </html>
+    """
+
+
+def generate_enhanced_diagram(learning_plan):
+    """Generate a detailed diagram based on the learning plan"""
+    # Convert learning plan to D3 format
+    d3_data = create_d3_diagram_data(learning_plan)
+
+    # Create base SVG template
+    svg_template = f"""
+    <svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+        <style>
+            .node circle {{
+                fill: white;
+                stroke: #4CAF50;
+                stroke-width: 3px;
+            }}
+            .node text {{
+                font: 12px sans-serif;
+            }}
+            .link {{
+                fill: none;
+                stroke: #ccc;
+                stroke-width: 2px;
+            }}
+            .node:hover circle {{
+                fill: #f0f0f0;
+            }}
+        </style>
+        <g transform="translate(40,20)">
+            <!-- Content will be added here by D3.js -->
+        </g>
+    </svg>
+    """
+
+    # Create the interactive HTML with embedded D3.js
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <style>
+            .container {{
+                width: 800px;
+                height: 600px;
+                overflow: hidden;
+            }}
+            .tooltip {{
+                position: absolute;
+                background: white;
+                border: 1px solid #ddd;
+                padding: 10px;
+                border-radius: 5px;
+                box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            {svg_template}
+        </div>
+        <script>
+            const data = {json.dumps(d3_data)};
+            
+            // D3.js visualization code will be added here
+            // This will be handled by create_interactive_diagram()
+        </script>
+    </body>
+    </html>
+    """
+
+    return html_content
+
+
+def validate_diagram(content):
+    """Validate the diagram content"""
+    if not content:
+        return False
+    if not isinstance(content, str):
+        return False
+    if "<!DOCTYPE html>" not in content:
+        return False
+    if "<svg" not in content:
+        return False
+    return True
 
 
 # Start with the interactive learning journey
@@ -259,26 +460,33 @@ elif st.session_state.stage == "display":
     with st.expander("📋 Learning Plan", expanded=True):
         st.write(st.session_state.learning_plan)
 
-    col1, col2 = st.columns([3, 1])
+    try:
+        # Generate D3 data with error handling
+        with st.spinner("Generating interactive diagram..."):
+            d3_data = create_d3_diagram_data(st.session_state.learning_plan)
 
-    with col1:
-        st.components.v1.html(st.session_state.last_svg, height=400)
+            # Create and display interactive diagram
+            diagram_html = create_interactive_diagram()
+            # Safely insert the D3 data
+            diagram_html = diagram_html.replace(
+                "const data = DIAGRAM_DATA;",
+                f"const data = {json.dumps(d3_data)};",
+            )
 
-    with col2:
-        st.download_button(
-            label="💾 Download SVG",
-            data=st.session_state.last_svg,
-            file_name="diagram.svg",
-            mime="image/svg+xml",
-            key="main_download",
-        )
+            if validate_diagram(diagram_html):
+                components.html(diagram_html, height=700)
+            else:
+                st.error("Failed to generate valid diagram. Please try again.")
 
-        if st.button("🔍 View SVG Source", key="main_view_source"):
-            st.code(st.session_state.last_svg, language="xml")
+    except Exception as e:
+        st.error(f"Error generating diagram: {str(e)}")
+        st.write("### Learning Plan Overview")
+        st.write(st.session_state.learning_plan)
 
-    if st.button("Start New Topic", key="new_topic"):
-        st.session_state.stage = "initial"
-        st.rerun()
+        # Add retry button
+        if st.button("Try generating diagram again"):
+            st.session_state.stage = "questioning"
+            st.rerun()
 
 # Add helpful tips
 with st.expander("💡 Tips for better results"):
