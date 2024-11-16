@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 import uuid
 import streamlit.components.v1 as components
+from streamlit_elements import elements, dashboard, mui, html, sync
 
 # Load environment variables
 load_dotenv()
@@ -26,28 +27,34 @@ def load_history():
         with open(STORAGE_FILE, "r") as f:
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        return {"prompts": []}
+        return {"topics": []}
 
 
-def save_to_history(prompt, svg_content):
-    """Save prompt, topic plan, and SVG to JSON file"""
-    history = load_history()
+def save_to_history(prompt, learning_plan):
+    """Save topic and its learning plan to history"""
+    try:
+        history = load_history()
 
-    new_entry = {
-        "id": str(uuid.uuid4()),
-        "prompt": prompt,
-        "topic_plan": st.session_state.get("topic_plan", ""),
-        "svg_content": svg_content,
-        "learning_plan": st.session_state.get("learning_plan", ""),
-        "timestamp": datetime.now().isoformat(),
-    }
+        new_entry = {
+            "id": str(uuid.uuid4()),
+            "prompt": prompt,
+            "learning_plan": learning_plan,
+            "timestamp": datetime.now().isoformat(),
+        }
 
-    history["prompts"].append(new_entry)
+        if "topics" not in history:
+            history["topics"] = []
 
-    with open(STORAGE_FILE, "w") as f:
-        json.dump(history, f, indent=2)
+        history["topics"].append(new_entry)
 
-    return new_entry
+        with open(STORAGE_FILE, "w") as f:
+            json.dump(history, f, indent=2)
+
+        return new_entry
+
+    except Exception as e:
+        st.error(f"Error saving to history: {str(e)}")
+        return None
 
 
 def get_initial_questions(prompt):
@@ -112,349 +119,135 @@ Please create a detailed learning plan based on these responses.""",
     return response.choices[0].message.content.strip()
 
 
-def create_d3_diagram_data(learning_plan):
-    """Convert learning plan into D3 hierarchical format"""
-    messages = [
+def convert_to_reactflow_data(learning_plan):
+    """Convert learning plan to React Flow format"""
+    nodes = []
+    edges = []
+    y_position = 0
+    x_position = 400
+
+    # Split learning plan into sections
+    sections = learning_plan.split("\n\n")
+
+    # Create main node
+    nodes.append(
         {
-            "role": "system",
-            "content": """Convert the learning plan into a clear hierarchical diagram structure.
-            Output only valid JSON in this exact format:
-            {
-                "name": "Main Topic",
-                "children": [
-                    {
-                        "name": "Core Concept 1",
-                        "description": "Clear explanation of this concept",
-                        "children": [
-                            {
-                                "name": "Subtopic 1.1",
-                                "description": "Detailed explanation"
-                            }
-                        ]
-                    }
-                ]
-            }
-            Focus on making each concept clear and well-structured.""",
-        },
-        {
-            "role": "user",
-            "content": f"Convert this learning plan into a diagram structure:\n{learning_plan}",
-        },
-    ]
-
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=messages,
-            temperature=0.3,  # Lower temperature for more consistent output
-            max_tokens=2000,
-        )
-
-        content = response.choices[0].message.content.strip()
-        # Clean up any markdown formatting
-        content = content.replace("```json", "").replace("```", "").strip()
-
-        return json.loads(content)
-
-    except Exception as e:
-        # Provide a simple fallback structure
-        return {
-            "name": "Learning Plan",
-            "children": [
-                {
-                    "name": "Key Concepts",
-                    "description": "Main ideas and fundamentals",
-                    "children": [
-                        {
-                            "name": "Getting Started",
-                            "description": "Basic concepts and foundations",
-                        }
-                    ],
-                }
-            ],
+            "id": "main",
+            "type": "custom",
+            "position": {"x": x_position, "y": y_position},
+            "data": {"title": "Main Topic", "content": sections[0]},
         }
+    )
 
+    y_position += 150
 
-def create_interactive_diagram():
-    """Create an interactive D3.js diagram"""
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <script src="https://d3js.org/d3.v7.min.js"></script>
-        <style>
-            .node {
-                cursor: pointer;
-            }
-            .node circle {
-                fill: #fff;
-                stroke: steelblue;
-                stroke-width: 3px;
-            }
-            .node text {
-                font: 12px sans-serif;
-            }
-            .link {
-                fill: none;
-                stroke: #ccc;
-                stroke-width: 2px;
-            }
-            .tooltip {
-                position: absolute;
-                background: white;
-                border: 1px solid #ddd;
-                padding: 10px;
-                border-radius: 5px;
-                display: none;
-            }
-            .question-form {
-                position: fixed;
-                bottom: 20px;
-                left: 20px;
-                background: white;
-                padding: 10px;
-                border-radius: 5px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            }
-        </style>
-    </head>
-    <body>
-        <div id="diagram"></div>
-        <div class="tooltip"></div>
-        <div class="question-form">
-            <input type="text" id="question" placeholder="Ask a question about this topic...">
-            <button onclick="askQuestion()">Ask</button>
-        </div>
-        <script>
-            // D3.js visualization code here
-            const data = DIAGRAM_DATA;  // This will be replaced with actual data
-            
-            const width = 800;
-            const height = 600;
-            
-            const tree = d3.tree().size([height, width - 160]);
-            
-            const root = d3.hierarchy(data);
-            
-            const svg = d3.select("#diagram")
-                .append("svg")
-                .attr("width", width)
-                .attr("height", height)
-                .append("g")
-                .attr("transform", "translate(80,0)");
-            
-            const link = svg.selectAll(".link")
-                .data(tree(root).links())
-                .enter().append("path")
-                .attr("class", "link")
-                .attr("d", d3.linkHorizontal()
-                    .x(d => d.y)
-                    .y(d => d.x));
-            
-            const node = svg.selectAll(".node")
-                .data(root.descendants())
-                .enter().append("g")
-                .attr("class", "node")
-                .attr("transform", d => `translate(${d.y},${d.x})`);
-            
-            node.append("circle")
-                .attr("r", 10)
-                .on("click", function(event, d) {
-                    showTooltip(event, d);
-                });
-            
-            node.append("text")
-                .attr("dy", ".35em")
-                .attr("x", d => d.children ? -13 : 13)
-                .style("text-anchor", d => d.children ? "end" : "start")
-                .text(d => d.data.name);
-            
-            function showTooltip(event, d) {
-                const tooltip = d3.select(".tooltip");
-                tooltip.style("display", "block")
-                    .style("left", (event.pageX + 10) + "px")
-                    .style("top", (event.pageY - 10) + "px")
-                    .html(`
-                        <h3>${d.data.name}</h3>
-                        <p>${d.data.description || ""}</p>
-                    `);
-            }
-            
-            function askQuestion() {
-                const question = document.getElementById("question").value;
-                // Send question to backend
-                window.parent.postMessage({
-                    type: "askQuestion",
-                    question: question
-                }, "*");
-            }
-            
-            // Close tooltip when clicking elsewhere
-            document.addEventListener("click", function(event) {
-                if (!event.target.closest(".node")) {
-                    d3.select(".tooltip").style("display", "none");
+    # Process each section
+    for i, section in enumerate(sections[1:], 1):
+        if section.strip():
+            # Split section into title and content
+            if ":" in section:
+                title, content = section.split(":", 1)
+            else:
+                title = f"Topic {i}"
+                content = section
+
+            # Create node
+            node_id = f"node-{i}"
+            x_offset = (i % 3 - 1) * 300
+
+            nodes.append(
+                {
+                    "id": node_id,
+                    "type": "custom",
+                    "position": {"x": x_position + x_offset, "y": y_position},
+                    "data": {
+                        "title": title.strip(),
+                        "content": content.strip(),
+                    },
                 }
-            });
-        </script>
-    </body>
-    </html>
-    """
+            )
+
+            # Create edge
+            edges.append(
+                {
+                    "id": f"edge-{i}",
+                    "source": "main",
+                    "target": node_id,
+                    "type": "smoothstep",
+                    "animated": True,
+                    "style": {"stroke": "#888"},
+                }
+            )
+
+            # Adjust y_position for next row if needed
+            if i % 3 == 0:
+                y_position += 200
+
+    return nodes, edges
 
 
-def generate_enhanced_diagram(learning_plan):
-    """Generate a detailed diagram based on the learning plan"""
-    try:
-        # Convert learning plan to D3 format with error handling
-        d3_data = {"name": "Learning Plan", "children": []}
+def create_flow_component():
+    """Create a custom React Flow component"""
+    return """
+import React from 'react';
+import ReactFlow, { 
+    Background, 
+    Controls, 
+    MiniMap,
+    useNodesState,
+    useEdgesState
+} from 'reactflow';
+import 'reactflow/dist/style.css';
 
-        # Split learning plan into sections
-        sections = learning_plan.split("\n\n")
+const CustomNode = ({ data }) => {
+    return (
+        <div style={{
+            background: '#fff',
+            padding: '15px',
+            borderRadius: '8px',
+            border: '1px solid #ddd',
+            maxWidth: '250px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+                {data.title}
+            </div>
+            <div style={{ fontSize: '12px' }}>
+                {data.content}
+            </div>
+        </div>
+    );
+};
 
-        # Process each section
-        current_section = None
-        for section in sections:
-            if section.strip():
-                if ":" in section:
-                    title, content = section.split(":", 1)
-                    section_data = {
-                        "name": title.strip(),
-                        "description": content.strip(),
-                        "children": [],
-                    }
-                    d3_data["children"].append(section_data)
-                    current_section = section_data
-                elif current_section:
-                    # Add as subsection to current section
-                    current_section["children"].append(
-                        {"name": section.strip(), "description": ""}
-                    )
+const nodeTypes = {
+    custom: CustomNode
+};
 
-        # Create the interactive HTML
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <script src="https://d3js.org/d3.v7.min.js"></script>
-            <style>
-                .node circle {{
-                    fill: white;
-                    stroke: #4CAF50;
-                    stroke-width: 2px;
-                }}
-                .node text {{
-                    font: 12px sans-serif;
-                }}
-                .link {{
-                    fill: none;
-                    stroke: #ccc;
-                    stroke-width: 1px;
-                }}
-                .tooltip {{
-                    position: absolute;
-                    background: white;
-                    border: 1px solid #ddd;
-                    padding: 10px;
-                    border-radius: 5px;
-                    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-                }}
-            </style>
-        </head>
-        <body>
-            <div id="diagram"></div>
-            <script>
-                const data = {json.dumps(d3_data)};
-                
-                const width = 800;
-                const height = 600;
-                const margin = {{top: 20, right: 90, bottom: 30, left: 90}};
-                
-                const tree = d3.tree()
-                    .size([height - margin.top - margin.bottom, width - margin.left - margin.right]);
-                
-                const svg = d3.select("#diagram")
-                    .append("svg")
-                    .attr("width", width)
-                    .attr("height", height)
-                    .append("g")
-                    .attr("transform", `translate(${{margin.left}},${{margin.top}})`);
-                
-                const root = d3.hierarchy(data);
-                const nodes = tree(root);
-                
-                const link = svg.selectAll(".link")
-                    .data(nodes.links())
-                    .enter()
-                    .append("path")
-                    .attr("class", "link")
-                    .attr("d", d3.linkHorizontal()
-                        .x(d => d.y)
-                        .y(d => d.x));
-                
-                const node = svg.selectAll(".node")
-                    .data(nodes.descendants())
-                    .enter()
-                    .append("g")
-                    .attr("class", d => "node" + (d.children ? " node--internal" : " node--leaf"))
-                    .attr("transform", d => `translate(${{d.y}},${{d.x}})`);
-                
-                node.append("circle")
-                    .attr("r", 7);
-                
-                node.append("text")
-                    .attr("dy", ".35em")
-                    .attr("x", d => d.children ? -13 : 13)
-                    .style("text-anchor", d => d.children ? "end" : "start")
-                    .text(d => d.data.name);
-                
-                // Add tooltips
-                const tooltip = d3.select("body")
-                    .append("div")
-                    .attr("class", "tooltip")
-                    .style("opacity", 0);
-                
-                node.on("mouseover", function(event, d) {{
-                    tooltip.transition()
-                        .duration(200)
-                        .style("opacity", .9);
-                    tooltip.html(d.data.description || d.data.name)
-                        .style("left", (event.pageX + 10) + "px")
-                        .style("top", (event.pageY - 10) + "px");
-                }})
-                .on("mouseout", function(d) {{
-                    tooltip.transition()
-                        .duration(500)
-                        .style("opacity", 0);
-                }});
-            </script>
-        </body>
-        </html>
-        """
+function LearningFlow({ data }) {
+    const [nodes, setNodes, onNodesChange] = useNodesState(data.nodes);
+    const [edges, setEdges, onEdgesChange] = useEdgesState(data.edges);
 
-        return html_content
+    return (
+        <div style={{ width: '100%', height: '100%' }}>
+            <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                nodeTypes={nodeTypes}
+                fitView
+                attributionPosition="bottom-left"
+            >
+                <Background />
+                <Controls />
+                <MiniMap />
+            </ReactFlow>
+        </div>
+    );
+}
 
-    except Exception as e:
-        # Return a simple error diagram
-        return f"""
-        <svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
-            <rect x="50" y="50" width="700" height="500" fill="#fee" stroke="#f00"/>
-            <text x="400" y="300" text-anchor="middle" font-size="20" fill="#700">
-                Error Generating Diagram: {str(e)}
-            </text>
-        </svg>
-        """
-
-
-def validate_diagram(content):
-    """Validate the diagram content"""
-    if not content:
-        return False
-    if not isinstance(content, str):
-        return False
-    if "<!DOCTYPE html>" not in content:
-        return False
-    if "<svg" not in content:
-        return False
-    return True
+export default LearningFlow;
+"""
 
 
 # Start with the interactive learning journey
@@ -492,36 +285,76 @@ elif st.session_state.stage == "questioning":
         answers.append(answer)
 
     if st.button("Generate Learning Plan") and all(answers):
+        # Generate learning plan
         learning_plan = analyze_responses(
             st.session_state.original_prompt,
             st.session_state.questions,
             answers,
         )
+
+        # Save to session state
         st.session_state.learning_plan = learning_plan
-
-        # Generate the diagram
-        svg_content = generate_enhanced_diagram(learning_plan)
-
-        # Save everything to session state
         st.session_state.last_prompt = st.session_state.original_prompt
-        st.session_state.last_svg = svg_content
-        st.session_state.stage = "display"
 
         # Save to history
-        save_to_history(st.session_state.original_prompt, svg_content)
+        save_to_history(st.session_state.original_prompt, learning_plan)
 
+        # Move to display stage
+        st.session_state.stage = "display"
         st.rerun()
 
 elif st.session_state.stage == "display":
+    if "learning_plan" not in st.session_state:
+        st.error("No learning plan found. Please start over.")
+        st.session_state.stage = "initial"
+        st.rerun()
+
     st.title(st.session_state.original_prompt)
 
     with st.expander("📋 Learning Plan", expanded=True):
         st.write(st.session_state.learning_plan)
 
     try:
-        # Generate and display the diagram
-        diagram_html = generate_enhanced_diagram(st.session_state.learning_plan)
-        components.html(diagram_html, height=700)
+        # Convert learning plan to React Flow format
+        flow_data = convert_to_reactflow_data(st.session_state.learning_plan)
+
+        # Create dashboard layout
+        with elements("learning_diagram"):
+            # Add required CSS
+            elements.html(
+                """
+                <link href="https://unpkg.com/reactflow@11.10.1/dist/style.css" rel="stylesheet" />
+                <style>
+                    .react-flow__node {
+                        cursor: grab;
+                    }
+                    .react-flow__node:active {
+                        cursor: grabbing;
+                    }
+                </style>
+            """
+            )
+
+            # Create layout
+            layout = [dashboard.Item("diagram", 0, 0, 12, 6)]
+
+            with dashboard.Grid(layout):
+                with mui.Paper(
+                    elevation=3,
+                    sx={
+                        "height": "600px",
+                        "overflow": "hidden",
+                        "borderRadius": 2,
+                        "p": 2,
+                        "bgcolor": "#f5f5f5",
+                    },
+                ):
+                    # Mount the React Flow component
+                    elements.declare_component(
+                        "LearningFlow",
+                        create_flow_component(),
+                        props={"data": flow_data},
+                    )
 
     except Exception as e:
         st.error(f"Error generating diagram: {str(e)}")
@@ -541,25 +374,24 @@ with st.expander("💡 Tips for better results"):
 
 # Show history in sidebar
 with st.sidebar:
-    st.write("### Previous Diagrams")
+    st.write("### Previous Topics")
     history = load_history()
 
-    # Show most recent prompts first
-    for i, entry in enumerate(reversed(history["prompts"])):
+    # Show most recent topics first
+    for i, entry in enumerate(reversed(history.get("topics", []))):
         # Get first three words of the prompt
         prompt_words = entry["prompt"].split()[:3]
         short_label = " ".join(prompt_words) + "..."
 
         with st.expander(f"{short_label}"):
-            st.write(f"**Full prompt:** {entry['prompt']}")
+            st.write(f"**Topic:** {entry['prompt']}")
             st.write(f"Created: {entry['timestamp']}")
-            st.components.v1.html(entry["svg_content"], height=300)
+            st.write("### Learning Plan")
+            st.write(entry["learning_plan"])
 
-            # Add download button for each historical entry
-            st.download_button(
-                label="💾 Download SVG",
-                data=entry["svg_content"],
-                file_name=f"diagram_{entry['id'][:8]}.svg",
-                mime="image/svg+xml",
-                key=f"history_download_{i}",
-            )
+            # Add a button to reload this topic
+            if st.button(f"Load this topic", key=f"load_{entry['id']}"):
+                st.session_state.learning_plan = entry["learning_plan"]
+                st.session_state.original_prompt = entry["prompt"]
+                st.session_state.stage = "display"
+                st.rerun()

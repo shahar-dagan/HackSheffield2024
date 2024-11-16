@@ -2,3 +2,5 @@ streamlit
 requests
 openai
 python-dotenv
+streamlit-elements
+d3-dagre
