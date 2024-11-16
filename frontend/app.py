@@ -1,13 +1,13 @@
 import streamlit as st
-import os
 from openai import OpenAI
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
 
 # Set up the OpenAI client
-client = OpenAI(
-    api_key=os.getenv(
-        "OPENAI_API_KEY"
-    )  # Set your OpenAI API key in environment
-)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Streamlit app frontend
 st.title("📊 Diagram Generator")
