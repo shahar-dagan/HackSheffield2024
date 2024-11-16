@@ -26,7 +26,7 @@ def generate_diagram(prompt):
         messages = [
             {
                 "role": "system",
-                "content": "You are a diagram generation assistant. Generate diagrams in SVG format. Always start your response with <svg and end with </svg>. Keep diagrams simple and clear.",
+                "content": "You are a helpful explainer and diegram creator. You will recieve instuctions to create a diagram to help explain topic. Your diagram should be infomative. You will privide it as SVD code. You will only respond with raw SVD code without formatting.",
             },
             {
                 "role": "user",
