@@ -9,7 +9,7 @@ response = client.chat.completions.create(
       "content": [
         {
           "type": "text",
-          "text": "You are a helpful explainer and diegram creator. You will recieve instuctions to create a diagram to help explain topic. Your diagram should be infomative. You will privide it as SVD code. You will only respond with raw SVD code without formatting. "
+          "text": "You are a helpful explainer and diagram creator. You will receive instructions to create a diagram to help explain topic. Your diagram should be infomative. You will privide it as SVD code. You will only respond with raw SVD code without formatting. "
         }
       ]
     }
@@ -22,5 +22,5 @@ response = client.chat.completions.create(
   response_format={
     "type": "text"
   },
-  stop=["</svd>"]
+  stop=["<<<explanation_end>>>"]
 )
