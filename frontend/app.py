@@ -2,6 +2,9 @@ import streamlit as st
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
+import json
+from datetime import datetime
+import uuid
 
 # Load environment variables
 load_dotenv()
@@ -9,8 +12,46 @@ load_dotenv()
 # Set up the OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# File path for JSON storage
+STORAGE_FILE = "data/prompt_history.json"
+
+# Ensure data directory exists
+os.makedirs("data", exist_ok=True)
+
+
+def load_history():
+    """Load existing history from JSON file"""
+    try:
+        with open(STORAGE_FILE, "r") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {"prompts": []}
+
+
+def save_to_history(prompt, svg_content):
+    """Save prompt and SVG to JSON file"""
+    history = load_history()
+
+    # Create new entry
+    new_entry = {
+        "id": str(uuid.uuid4()),
+        "prompt": prompt,
+        "svg_content": svg_content,
+        "timestamp": datetime.now().isoformat(),
+    }
+
+    # Add to history
+    history["prompts"].append(new_entry)
+
+    # Save to file
+    with open(STORAGE_FILE, "w") as f:
+        json.dump(history, f, indent=2)
+
+    return new_entry
+
+
 # Streamlit app frontend
-st.title("📊 Diagram Generator")
+st.title("Diagram Generator")
 st.write("Enter your prompt to generate a diagram")
 
 # Create the search bar
@@ -62,6 +103,9 @@ if st.button("Generate Diagram") and user_prompt:
         svg_content = generate_diagram(user_prompt)
 
         if svg_content:
+            # Save to history
+            entry = save_to_history(user_prompt, svg_content)
+
             # Create two columns for layout
             col1, col2 = st.columns([3, 1])
 
@@ -101,8 +145,23 @@ if "history" not in st.session_state:
 # Show history in sidebar
 with st.sidebar:
     st.write("### Previous Diagrams")
-    for i, item in enumerate(
-        st.session_state.history[-5:]
-    ):  # Show last 5 diagrams
-        if st.button(f"Diagram {len(st.session_state.history)-i}"):
-            st.components.v1.html(item["svg"], height=300)
+    history = load_history()
+
+    # Show most recent prompts first
+    for entry in reversed(history["prompts"]):
+        # Get first three words of the prompt
+        prompt_words = entry["prompt"].split()[:3]
+        short_label = " ".join(prompt_words) + "..."
+
+        with st.expander(f"{short_label}"):
+            st.write(f"**Full prompt:** {entry['prompt']}")
+            st.write(f"Created: {entry['timestamp']}")
+            st.components.v1.html(entry["svg_content"], height=300)
+
+            # Add download button for each historical entry
+            st.download_button(
+                label="💾 Download SVG",
+                data=entry["svg_content"],
+                file_name=f"diagram_{entry['id'][:8]}.svg",
+                mime="image/svg+xml",
+            )
