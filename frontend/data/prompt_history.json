@@ -11,6 +11,18 @@
       "prompt": "Create a diagram to show how neural networks work ",
       "svg_content": "<svg width=\"400\" height=\"200\" xmlns=\"http://www.w3.org/2000/svg\">\n    <!-- Input layer -->\n    <circle cx=\"50\" cy=\"100\" r=\"20\" fill=\"skyblue\" />\n    <circle cx=\"50\" cy=\"150\" r=\"20\" fill=\"skyblue\" />\n    \n    <!-- Hidden layer -->\n    <circle cx=\"200\" cy=\"75\" r=\"20\" fill=\"lightgreen\" />\n    <circle cx=\"200\" cy=\"125\" r=\"20\" fill=\"lightgreen\" />\n    \n    <!-- Output layer -->\n    <circle cx=\"350\" cy=\"100\" r=\"20\" fill=\"salmon\" />\n    \n    <!-- Connecting lines -->\n    <line x1=\"70\" y1=\"100\" x2=\"180\" y2=\"75\" stroke=\"black\" />\n    <line x1=\"70\" y1=\"100\" x2=\"180\" y2=\"125\" stroke=\"black\" />\n    \n    <line x1=\"70\" y1=\"150\" x2=\"180\" y2=\"75\" stroke=\"black\" />\n    <line x1=\"70\" y1=\"150\" x2=\"180\" y2=\"125\" stroke=\"black\" />\n    \n    <line x1=\"220\" y1=\"75\" x2=\"330\" y2=\"100\" stroke=\"black\" />\n    <line x1=\"220\" y1=\"125\" x2=\"330\" y2=\"100\" stroke=\"black\" />\n</svg>",
       "timestamp": "2024-11-16T21:00:56.546043"
+    },
+    {
+      "id": "47716e28-073a-443c-b359-06ffc7e396e8",
+      "prompt": "Create a diagram that discusses the early history of aviation \n",
+      "svg_content": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 200\">\n  <text x=\"50\" y=\"30\" font-family=\"Arial\" font-size=\"16\">Early History of Aviation</text>\n  \n  <rect x=\"20\" y=\"50\" width=\"150\" height=\"100\" fill=\"lightblue\" stroke=\"black\" />\n  <text x=\"45\" y=\"120\" font-family=\"Arial\" font-size=\"12\">Wright Brothers</text>\n  \n  <rect x=\"230\" y=\"50\" width=\"150\" height=\"100\" fill=\"lightgreen\" stroke=\"black\" />\n  <text x=\"260\" y=\"120\" font-family=\"Arial\" font-size=\"12\">Other Inventors</text>\n  \n  <line x1=\"170\" y1=\"100\" x2=\"230\" y2=\"100\" stroke=\"black\" stroke-dasharray=\"5,5\" />\n</svg>",
+      "timestamp": "2024-11-16T21:23:23.229415"
+    },
+    {
+      "id": "c8b5097d-30c2-486d-86f0-89d977079b85",
+      "prompt": "Explain to me the history of the united states\n",
+      "svg_content": "<svg width=\"400\" height=\"200\" xmlns=\"http://www.w3.org/2000/svg\">\n  <rect x=\"50\" y=\"50\" width=\"300\" height=\"100\" fill=\"lightblue\" />\n  <text x=\"200\" y=\"100\" font-family=\"Arial\" font-size=\"16\" fill=\"black\" text-anchor=\"middle\">History of the United States</text>\n</svg>",
+      "timestamp": "2024-11-16T21:28:33.277714"
     }
   ]
 }

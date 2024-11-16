@@ -18,6 +18,10 @@ STORAGE_FILE = "data/prompt_history.json"
 # Ensure data directory exists
 os.makedirs("data", exist_ok=True)
 
+# Add this near the top of the file, after the imports
+if "current_tab" not in st.session_state:
+    st.session_state.current_tab = 0
+
 
 def load_history():
     """Load existing history from JSON file"""
@@ -50,8 +54,29 @@ def save_to_history(prompt, svg_content):
     return new_entry
 
 
-# Streamlit app frontend
-st.title("Diagram Generator")
+# Move the title and diagram display section to the top
+if "last_prompt" in st.session_state and "last_svg" in st.session_state:
+    st.title(st.session_state.last_prompt)
+
+    # Create two columns for the diagram display
+    col1, col2 = st.columns([3, 1])
+
+    with col1:
+        st.components.v1.html(st.session_state.last_svg, height=400)
+
+    with col2:
+        st.download_button(
+            label="💾 Download SVG",
+            data=st.session_state.last_svg,
+            file_name="diagram.svg",
+            mime="image/svg+xml",
+        )
+
+        if st.button("🔍 View SVG Source"):
+            st.code(st.session_state.last_svg, language="xml")
+
+# Move the input section to the bottom
+st.write("---")  # Add a separator
 st.write("Enter your prompt to generate a diagram")
 
 # Create the search bar
@@ -106,26 +131,12 @@ if st.button("Generate Diagram") and user_prompt:
             # Save to history
             entry = save_to_history(user_prompt, svg_content)
 
-            # Create two columns for layout
-            col1, col2 = st.columns([3, 1])
+            # Store in session state for display
+            st.session_state.last_prompt = user_prompt
+            st.session_state.last_svg = svg_content
 
-            with col1:
-                # Display the SVG
-                st.write("### Generated Diagram:")
-                st.components.v1.html(svg_content, height=400)
-
-            with col2:
-                # Download button
-                st.download_button(
-                    label="💾 Download SVG",
-                    data=svg_content,
-                    file_name="diagram.svg",
-                    mime="image/svg+xml",
-                )
-
-                # View source button
-                if st.button("🔍 View SVG Source"):
-                    st.code(svg_content, language="xml")
+            # Rerun to update the display
+            st.rerun()
 
 # Add helpful tips
 with st.expander("💡 Tips for better diagrams"):
