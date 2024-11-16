@@ -120,6 +120,66 @@
       "prompt": "Figma",
       "learning_plan": "Learning Plan for Figma\n\n1. Core Concepts:\n   - Understanding the Figma interface\n   - Creating and managing Figma files \n   - Using Figma tools for design\n   - Collaborating in Figma with teams\n   - Transitioning from other design tools to Figma\n   - Advanced techniques in Figma\n\n2. Learning Path:\n   - Step 1: Introduction to the Figma interface and navigation\n   - Step 2: Creating and managing files in Figma\n   - Step 3: Deep dive into Figma's design tools and functionalities\n   - Step 4: Understanding team collaboration in Figma including sharing, co-editing, and commenting\n   - Step 5: Learning how to transition from other design tools to Figma, focusing on main differences\n   - Step 6: Exploring advanced techniques in Figma like prototyping, interaction design, and advanced components\n\n3. Key Relationships:\n   - Understanding the relationship between Figma interface and its functionalities\n   - Connection between individual design tools and the final product\n   - Relationship between team collaboration features and efficient workflow\n   - Connection between transitioning from other tools and leveraging Figma\u2019s unique features\n   - Relationship between mastering basic functionalities and effectively using advanced techniques\n\n4. Practical Applications:\n   - Real-world project: Creating a fully interactive mobile app prototype using Figma\n   - Team exercise: Collaborating with team members to design and iterate a website layout\n   - Case study: Transitioning a project from Sketch/Adobe XD to Figma, focusing on how to adapt the workflow\n   - Advanced project: Designing a complex user interface with intricate interactions using advanced Figma techniques\n\n5. Common Challenges:\n   - Challenge: Difficulty in understanding Figma's interface and functionalities. Solution: Start with basics, use online resources and practice regularly.\n   - Challenge: Struggling with team collaboration features. Solution: Practice with team exercises and understand the importance of each feature.\n   - Challenge: Difficulty in transitioning from other tools to Figma. Solution: Understand key differences and explore equivalent features in Figma.\n   - Challenge: Difficulty in implementing advanced techniques. Solution: Master the basics first, then gradually take on more complex tasks, use tutorials and online resources for guidance.",
       "timestamp": "2024-11-16T23:02:54.629072"
+    },
+    {
+      "id": "d1520029-e465-46d1-bb13-89f6e7646120",
+      "prompt": "BBC\n",
+      "learning_plan": "Machine Learning Fundamentals\n\nCore Concepts:\nUnderstanding the basics of machine learning, including supervised and unsupervised learning approaches. This forms the foundation of all ML applications.\n\nData Preprocessing:\nLearn how to prepare and clean data for machine learning models. This includes handling missing values, feature scaling, and normalization techniques.\n\nModel Selection:\nExplore different types of machine learning models and when to use them. From simple linear regression to complex neural networks.\n\nEvaluation Metrics:\nUnderstanding how to measure model performance using various metrics like accuracy, precision, and recall.\n\nPractical Implementation:\nHands-on experience with popular ML libraries and frameworks. Building and deploying real machine learning models.",
+      "timestamp": "2024-11-16T23:04:59.751246"
+    },
+    {
+      "id": "91015e6a-d45f-464c-a5fc-dead3f1223e4",
+      "prompt": "BBC\n",
+      "learning_plan": "Machine Learning Fundamentals\n\nCore Concepts:\nUnderstanding the basics of machine learning, including supervised and unsupervised learning approaches. This forms the foundation of all ML applications.\n\nData Preprocessing:\nLearn how to prepare and clean data for machine learning models. This includes handling missing values, feature scaling, and normalization techniques.\n\nModel Selection:\nExplore different types of machine learning models and when to use them. From simple linear regression to complex neural networks.\n\nEvaluation Metrics:\nUnderstanding how to measure model performance using various metrics like accuracy, precision, and recall.\n\nPractical Implementation:\nHands-on experience with popular ML libraries and frameworks. Building and deploying real machine learning models.",
+      "timestamp": "2024-11-16T23:06:34.783951"
+    },
+    {
+      "id": "48dfd5c4-5e0e-4099-b495-08df4407f784",
+      "prompt": "bbc",
+      "learning_plan": "Machine Learning Fundamentals\n\nCore Concepts:\nUnderstanding the basics of machine learning, including supervised and unsupervised learning approaches. This forms the foundation of all ML applications.\n\nData Preprocessing:\nLearn how to prepare and clean data for machine learning models. This includes handling missing values, feature scaling, and normalization techniques.\n\nModel Selection:\nExplore different types of machine learning models and when to use them. From simple linear regression to complex neural networks.\n\nEvaluation Metrics:\nUnderstanding how to measure model performance using various metrics like accuracy, precision, and recall.\n\nPractical Implementation:\nHands-on experience with popular ML libraries and frameworks. Building and deploying real machine learning models.",
+      "timestamp": "2024-11-16T23:07:44.071761"
+    },
+    {
+      "id": "7a66427f-eacf-41d4-a7a8-a9f2d081b027",
+      "prompt": "BBC\n",
+      "learning_plan": "Machine Learning Fundamentals\n\nCore Concepts:\nUnderstanding the basics of machine learning, including supervised and unsupervised learning approaches. This forms the foundation of all ML applications.\n\nData Preprocessing:\nLearn how to prepare and clean data for machine learning models. This includes handling missing values, feature scaling, and normalization techniques.\n\nModel Selection:\nExplore different types of machine learning models and when to use them. From simple linear regression to complex neural networks.\n\nEvaluation Metrics:\nUnderstanding how to measure model performance using various metrics like accuracy, precision, and recall.\n\nPractical Implementation:\nHands-on experience with popular ML libraries and frameworks. Building and deploying real machine learning models.",
+      "timestamp": "2024-11-16T23:08:17.380121"
+    },
+    {
+      "id": "7b7cd1b9-6e42-4a4c-9b42-f0ab99a56fce",
+      "prompt": "bbc",
+      "learning_plan": "Machine Learning Fundamentals\n\nCore Concepts:\nUnderstanding the basics of machine learning, including supervised and unsupervised learning approaches. This forms the foundation of all ML applications.\n\nData Preprocessing:\nLearn how to prepare and clean data for machine learning models. This includes handling missing values, feature scaling, and normalization techniques.\n\nModel Selection:\nExplore different types of machine learning models and when to use them. From simple linear regression to complex neural networks.\n\nEvaluation Metrics:\nUnderstanding how to measure model performance using various metrics like accuracy, precision, and recall.\n\nPractical Implementation:\nHands-on experience with popular ML libraries and frameworks. Building and deploying real machine learning models.",
+      "timestamp": "2024-11-16T23:14:57.978477"
+    },
+    {
+      "id": "5161f0d3-1ddb-4bb2-b5d6-ad766db75826",
+      "prompt": "BBC",
+      "learning_plan": "Machine Learning Fundamentals\n\nCore Concepts:\nUnderstanding the basics of machine learning, including supervised and unsupervised learning approaches. This forms the foundation of all ML applications.\n\nData Preprocessing:\nLearn how to prepare and clean data for machine learning models. This includes handling missing values, feature scaling, and normalization techniques.\n\nModel Selection:\nExplore different types of machine learning models and when to use them. From simple linear regression to complex neural networks.\n\nEvaluation Metrics:\nUnderstanding how to measure model performance using various metrics like accuracy, precision, and recall.\n\nPractical Implementation:\nHands-on experience with popular ML libraries and frameworks. Building and deploying real machine learning models.",
+      "timestamp": "2024-11-16T23:16:08.426218"
+    },
+    {
+      "id": "6afe1053-3441-4142-b9eb-e21050729f78",
+      "prompt": "BBC",
+      "learning_plan": "Machine Learning Fundamentals\n\nCore Concepts:\nUnderstanding the basics of machine learning, including supervised and unsupervised learning approaches. This forms the foundation of all ML applications.\n\nData Preprocessing:\nLearn how to prepare and clean data for machine learning models. This includes handling missing values, feature scaling, and normalization techniques.\n\nModel Selection:\nExplore different types of machine learning models and when to use them. From simple linear regression to complex neural networks.\n\nEvaluation Metrics:\nUnderstanding how to measure model performance using various metrics like accuracy, precision, and recall.\n\nPractical Implementation:\nHands-on experience with popular ML libraries and frameworks. Building and deploying real machine learning models.",
+      "timestamp": "2024-11-16T23:16:39.040763"
+    },
+    {
+      "id": "73cef0d6-d895-4cc5-82ed-233687b81723",
+      "prompt": "BBC",
+      "learning_plan": "Machine Learning Fundamentals\n\nCore Concepts:\nUnderstanding the basics of machine learning, including supervised and unsupervised learning approaches. This forms the foundation of all ML applications.\n\nData Preprocessing:\nLearn how to prepare and clean data for machine learning models. This includes handling missing values, feature scaling, and normalization techniques.\n\nModel Selection:\nExplore different types of machine learning models and when to use them. From simple linear regression to complex neural networks.\n\nEvaluation Metrics:\nUnderstanding how to measure model performance using various metrics like accuracy, precision, and recall.\n\nPractical Implementation:\nHands-on experience with popular ML libraries and frameworks. Building and deploying real machine learning models.",
+      "timestamp": "2024-11-16T23:17:16.560252"
+    },
+    {
+      "id": "42e5f720-aa69-43e9-8df2-d002d0832b09",
+      "prompt": "BBC",
+      "learning_plan": "Machine Learning Fundamentals\n\nCore Concepts:\nUnderstanding the basics of machine learning, including supervised and unsupervised learning approaches. This forms the foundation of all ML applications.\n\nData Preprocessing:\nLearn how to prepare and clean data for machine learning models. This includes handling missing values, feature scaling, and normalization techniques.\n\nModel Selection:\nExplore different types of machine learning models and when to use them. From simple linear regression to complex neural networks.\n\nEvaluation Metrics:\nUnderstanding how to measure model performance using various metrics like accuracy, precision, and recall.\n\nPractical Implementation:\nHands-on experience with popular ML libraries and frameworks. Building and deploying real machine learning models.",
+      "timestamp": "2024-11-16T23:18:03.141164"
+    },
+    {
+      "id": "e006a3d8-0d03-4811-a5b6-45a71bcf5631",
+      "prompt": "bbc",
+      "learning_plan": "Machine Learning Fundamentals\n\nCore Concepts:\nUnderstanding the basics of machine learning, including supervised and unsupervised learning approaches. This forms the foundation of all ML applications.\n\nData Preprocessing:\nLearn how to prepare and clean data for machine learning models. This includes handling missing values, feature scaling, and normalization techniques.\n\nModel Selection:\nExplore different types of machine learning models and when to use them. From simple linear regression to complex neural networks.\n\nEvaluation Metrics:\nUnderstanding how to measure model performance using various metrics like accuracy, precision, and recall.\n\nPractical Implementation:\nHands-on experience with popular ML libraries and frameworks. Building and deploying real machine learning models.",
+      "timestamp": "2024-11-16T23:18:56.802607"
     }
   ]
 }
