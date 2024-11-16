@@ -5,8 +5,8 @@ import os
 import json
 from datetime import datetime
 import uuid
-import streamlit.components.v1 as components
-from streamlit_elements import elements, dashboard, mui, html, sync
+from streamlit_elements import elements, dashboard, mui, html, sync, nivo
+from streamlit_agraph import agraph, Node, Edge, Config
 
 # Load environment variables
 load_dotenv()
@@ -250,6 +250,38 @@ export default LearningFlow;
 """
 
 
+# Add these mock data functions at the top after imports
+
+
+def get_mock_questions():
+    """Return mock clarifying questions"""
+    return [
+        "What is your current level of understanding in this topic?",
+        "What specific aspects are you most interested in?",
+        "How do you plan to apply this knowledge?",
+    ]
+
+
+def get_mock_learning_plan():
+    """Return a structured mock learning plan"""
+    return """Machine Learning Fundamentals
+
+Core Concepts:
+Understanding the basics of machine learning, including supervised and unsupervised learning approaches. This forms the foundation of all ML applications.
+
+Data Preprocessing:
+Learn how to prepare and clean data for machine learning models. This includes handling missing values, feature scaling, and normalization techniques.
+
+Model Selection:
+Explore different types of machine learning models and when to use them. From simple linear regression to complex neural networks.
+
+Evaluation Metrics:
+Understanding how to measure model performance using various metrics like accuracy, precision, and recall.
+
+Practical Implementation:
+Hands-on experience with popular ML libraries and frameworks. Building and deploying real machine learning models."""
+
+
 # Start with the interactive learning journey
 st.title("Interactive Learning Diagram Generator")
 
@@ -263,6 +295,11 @@ if "answers" not in st.session_state:
     st.session_state.answers = []
 
 if st.session_state.stage == "initial":
+    # Add a toggle for testing mode
+    st.session_state.testing_mode = st.checkbox(
+        "Enable Testing Mode", value=True
+    )
+
     user_prompt = st.text_area(
         "What topic would you like to learn about?",
         placeholder="Example: Neural Networks in Deep Learning",
@@ -271,7 +308,12 @@ if st.session_state.stage == "initial":
 
     if st.button("Start Learning Journey") and user_prompt:
         st.session_state.original_prompt = user_prompt
-        st.session_state.questions = get_initial_questions(user_prompt)
+        # Use mock questions if in testing mode
+        st.session_state.questions = (
+            get_mock_questions()
+            if st.session_state.testing_mode
+            else get_initial_questions(user_prompt)
+        )
         st.session_state.stage = "questioning"
         st.rerun()
 
@@ -279,27 +321,32 @@ elif st.session_state.stage == "questioning":
     st.write("### Let's understand your needs better")
     st.write(f"Topic: {st.session_state.original_prompt}")
 
+    # Add quick fill button for testing
+    if st.session_state.testing_mode and st.button("Fill with Mock Answers"):
+        st.session_state.learning_plan = get_mock_learning_plan()
+        st.session_state.stage = "display"
+        st.rerun()
+
     answers = []
     for q in st.session_state.questions:
         answer = st.text_input(q)
         answers.append(answer)
 
     if st.button("Generate Learning Plan") and all(answers):
-        # Generate learning plan
-        learning_plan = analyze_responses(
-            st.session_state.original_prompt,
-            st.session_state.questions,
-            answers,
+        # Use mock data if in testing mode
+        learning_plan = (
+            get_mock_learning_plan()
+            if st.session_state.testing_mode
+            else analyze_responses(
+                st.session_state.original_prompt,
+                st.session_state.questions,
+                answers,
+            )
         )
 
-        # Save to session state
         st.session_state.learning_plan = learning_plan
         st.session_state.last_prompt = st.session_state.original_prompt
-
-        # Save to history
         save_to_history(st.session_state.original_prompt, learning_plan)
-
-        # Move to display stage
         st.session_state.stage = "display"
         st.rerun()
 
@@ -309,57 +356,83 @@ elif st.session_state.stage == "display":
         st.session_state.stage = "initial"
         st.rerun()
 
-    st.title(st.session_state.original_prompt)
+    with st.container():
+        st.title(st.session_state.original_prompt)
 
-    with st.expander("📋 Learning Plan", expanded=True):
-        st.write(st.session_state.learning_plan)
+        with st.expander("📋 Learning Plan", expanded=True):
+            st.write(st.session_state.learning_plan)
 
-    try:
-        # Convert learning plan to React Flow format
-        flow_data = convert_to_reactflow_data(st.session_state.learning_plan)
-
-        # Create dashboard layout
-        with elements("learning_diagram"):
-            # Add required CSS
-            elements.html(
-                """
-                <link href="https://unpkg.com/reactflow@11.10.1/dist/style.css" rel="stylesheet" />
-                <style>
-                    .react-flow__node {
-                        cursor: grab;
-                    }
-                    .react-flow__node:active {
-                        cursor: grabbing;
-                    }
-                </style>
-            """
+        try:
+            nodes, edges = convert_to_reactflow_data(
+                st.session_state.learning_plan
             )
 
-            # Create layout
-            layout = [dashboard.Item("diagram", 0, 0, 12, 6)]
+            # Convert to agraph format
+            ag_nodes = [
+                Node(
+                    id=node["id"],
+                    label=node["data"]["title"],
+                    size=25,
+                    color="#61CDB8" if node["id"] == "main" else "#F47560",
+                    # Add a shadow effect
+                    shadow=True,
+                    # Make font more readable
+                    font={"size": 14, "color": "black"},
+                    # Add a border
+                    borderWidth=2,
+                    borderColor="#333333",
+                )
+                for node in nodes
+            ]
 
-            with dashboard.Grid(layout):
-                with mui.Paper(
-                    elevation=3,
-                    sx={
-                        "height": "600px",
-                        "overflow": "hidden",
-                        "borderRadius": 2,
-                        "p": 2,
-                        "bgcolor": "#f5f5f5",
-                    },
-                ):
-                    # Mount the React Flow component
-                    elements.declare_component(
-                        "LearningFlow",
-                        create_flow_component(),
-                        props={"data": flow_data},
-                    )
+            ag_edges = [
+                Edge(
+                    source=edge["source"],
+                    target=edge["target"],
+                    # Add arrow
+                    arrow=True,
+                    # Style the edge
+                    color="#666666",
+                    width=2,
+                )
+                for edge in edges
+            ]
 
-    except Exception as e:
-        st.error(f"Error generating diagram: {str(e)}")
-        st.write("### Learning Plan Overview")
-        st.write(st.session_state.learning_plan)
+            # Configure the graph
+            config = Config(
+                width="100%",
+                height=600,
+                directed=True,
+                physics=True,
+                hierarchical=False,
+                # Add smooth curves
+                smooth=True,
+                # Configure physics
+                physics_props={
+                    "barnesHut": {
+                        "gravitationalConstant": -2000,
+                        "centralGravity": 0.3,
+                        "springLength": 95,
+                        "springConstant": 0.04,
+                        "damping": 0.09,
+                    }
+                },
+                # Configure node behavior
+                node_props={"shape": "dot", "scaling": {"min": 20, "max": 30}},
+                # Configure edge behavior
+                edge_props={
+                    "arrowStrikethrough": False,
+                    "smooth": {"type": "curvedCW", "roundness": 0.2},
+                },
+            )
+
+            # Render the graph
+            agraph(nodes=ag_nodes, edges=ag_edges, config=config)
+
+        except Exception as e:
+            st.error(f"Error generating diagram: {str(e)}")
+            st.write("### Learning Plan Overview")
+            st.write(st.session_state.learning_plan)
 
 # Add helpful tips
 with st.expander("💡 Tips for better results"):
