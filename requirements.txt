@@ -4,3 +4,4 @@ openai
 python-dotenv
 streamlit-elements
 d3-dagre
+streamlit-agraph

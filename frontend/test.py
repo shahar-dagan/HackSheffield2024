@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 import uuid
 from streamlit_elements import elements, dashboard, mui, html, sync, nivo
+from streamlit_agraph import agraph, Node, Edge, Config
 
 # Load environment variables
 load_dotenv()
@@ -366,80 +367,67 @@ elif st.session_state.stage == "display":
                 st.session_state.learning_plan
             )
 
-            with elements("learning_diagram"):
-                layout = [dashboard.Item("diagram", 0, 0, 12, 8)]
+            # Convert to agraph format
+            ag_nodes = [
+                Node(
+                    id=node["id"],
+                    label=node["data"]["title"],
+                    size=25,
+                    color="#61CDB8" if node["id"] == "main" else "#F47560",
+                    # Add a shadow effect
+                    shadow=True,
+                    # Make font more readable
+                    font={"size": 14, "color": "black"},
+                    # Add a border
+                    borderWidth=2,
+                    borderColor="#333333",
+                )
+                for node in nodes
+            ]
 
-                with dashboard.Grid(layout, draggable=False):
-                    with mui.Box(
-                        sx={
-                            "height": "600px",
-                            "width": "100%",
-                            "maxWidth": "1200px",
-                            "margin": "0 auto",
-                            "bgcolor": "#f5f5f5",
-                            "borderRadius": 2,
-                            "p": 4,  # Increased padding
-                            "boxShadow": 3,
-                            "overflow": "auto",  # Allow scrolling if needed
-                        }
-                    ):
-                        # Create a grid layout for nodes
-                        with mui.Grid(
-                            container=True,
-                            spacing=3,
-                            justifyContent="center",
-                            alignItems="center",
-                        ):
-                            # Main topic node
-                            with mui.Grid(item=True, xs=12):
-                                mui.Paper(
-                                    children=[
-                                        mui.Typography(
-                                            nodes[0]["data"]["title"],
-                                            variant="h6",
-                                            align="center",
-                                            sx={"p": 2},
-                                        )
-                                    ],
-                                    elevation=2,
-                                    sx={
-                                        "bgcolor": "primary.light",
-                                        "color": "white",
-                                        "mb": 3,
-                                    },
-                                )
+            ag_edges = [
+                Edge(
+                    source=edge["source"],
+                    target=edge["target"],
+                    # Add arrow
+                    arrow=True,
+                    # Style the edge
+                    color="#666666",
+                    width=2,
+                )
+                for edge in edges
+            ]
 
-                            # Subtopic nodes
-                            for node in nodes[1:]:  # Skip the first (main) node
-                                with mui.Grid(item=True, xs=12, sm=6, md=4):
-                                    mui.Paper(
-                                        children=[
-                                            mui.Typography(
-                                                node["data"]["title"],
-                                                variant="subtitle1",
-                                                align="center",
-                                                sx={"p": 2},
-                                            ),
-                                            mui.Typography(
-                                                node["data"]["content"],
-                                                variant="body2",
-                                                align="left",
-                                                sx={
-                                                    "p": 2,
-                                                    "color": "text.secondary",
-                                                },
-                                            ),
-                                        ],
-                                        elevation=1,
-                                        sx={
-                                            "height": "100%",
-                                            "transition": "all 0.3s",
-                                            "&:hover": {
-                                                "elevation": 3,
-                                                "bgcolor": "action.hover",
-                                            },
-                                        },
-                                    )
+            # Configure the graph
+            config = Config(
+                width="100%",
+                height=600,
+                directed=True,
+                physics=True,
+                hierarchical=False,
+                # Add smooth curves
+                smooth=True,
+                # Configure physics
+                physics_props={
+                    "barnesHut": {
+                        "gravitationalConstant": -2000,
+                        "centralGravity": 0.3,
+                        "springLength": 95,
+                        "springConstant": 0.04,
+                        "damping": 0.09,
+                    }
+                },
+                # Configure node behavior
+                node_props={"shape": "dot", "scaling": {"min": 20, "max": 30}},
+                # Configure edge behavior
+                edge_props={
+                    "arrowStrikethrough": False,
+                    "smooth": {"type": "curvedCW", "roundness": 0.2},
+                },
+            )
+
+            # Render the graph
+            agraph(nodes=ag_nodes, edges=ag_edges, config=config)
 
         except Exception as e:
             st.error(f"Error generating diagram: {str(e)}")
