@@ -532,23 +532,28 @@ Practical Examples:
         for edge in edges
     ]
 
+    config = Config(
+        width=2600,
+        height=1400,
+        directed=True,
+        physics=False,
+        hierarchical={
+            "enabled": True,
+            "levelSeparation": 600,
+            "nodeSpacing": 800,
+            "direction": "UD",
+            "sortMethod": "directed",
+            "treeSpacing": 800,
+        },
+        smooth=True,
+        interaction={"doubleClick": False},
+    )
+
     # Create a new section for the subtopic diagram
     st.write(f"### Detailed View: {topic}")
 
     with st.container():
-        clicked_node = agraph(
-            nodes=ag_nodes,
-            edges=ag_edges,
-            config=Config(
-                width="100%",
-                height=700,
-                directed=True,
-                physics=True,
-                hierarchical=True,
-                smooth=True,
-                interaction={"doubleClick": False},
-            ),
-        )
+        clicked_node = agraph(nodes=ag_nodes, edges=ag_edges, config=config)
 
         if clicked_node:
             st.write("---")
@@ -745,13 +750,20 @@ elif st.session_state.stage == "display":
             ]
 
             config = Config(
-                width="100%",
-                height=700,
+                width=2600,
+                height=1400,
                 directed=True,
-                physics=True,
-                hierarchical=True,
+                physics=False,
+                hierarchical={
+                    "enabled": True,
+                    "levelSeparation": 600,
+                    "nodeSpacing": 800,
+                    "direction": "UD",
+                    "sortMethod": "directed",
+                    "treeSpacing": 800,
+                },
                 smooth=True,
-                interaction={"doubleClick": False},  # Disable double-click
+                interaction={"doubleClick": False},
             )
 
             # Render the graph
