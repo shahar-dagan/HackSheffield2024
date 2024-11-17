@@ -7,6 +7,8 @@ from datetime import datetime
 import uuid
 from streamlit_elements import elements, dashboard, mui, html, sync, nivo
 from streamlit_agraph import agraph, Node, Edge, Config
+import requests
+from urllib.parse import quote
 
 # Set the page layout to wide
 st.set_page_config(layout="wide")
@@ -98,25 +100,82 @@ def save_to_history(prompt, learning_plan):
 
 
 def get_initial_questions(prompt):
-    """Generate relevant questions to better understand the user's needs"""
+    """Generate relevant questions and their multiple choice options"""
     messages = [
         {
             "role": "system",
-            "content": """You are an expert teacher who helps break down complex topics. 
-            Generate 3-4 specific questions that will help clarify what aspects of the topic the user wants to understand.
-            Format your response as a JSON array of strings, containing only the questions.""",
+            "content": """You are an expert teacher who helps understand learners' needs.
+            Generate 3 relevant questions to understand what aspects of the topic the user wants to learn.
+            For each question, provide 3-4 multiple choice options that are SPECIFIC to the topic.
+            
+            Format your response as a JSON array of question-option pairs.
+            Example for "Machine Learning":
+            [
+                {
+                    "question": "What aspect of Machine Learning interests you most?",
+                    "options": [
+                        "🤖 Supervised Learning & Classification",
+                        "🧠 Neural Networks & Deep Learning",
+                        "📊 Data Preprocessing & Feature Engineering",
+                        "🔄 Reinforcement Learning"
+                    ]
+                },
+                {
+                    "question": "Which ML application area is most relevant to you?",
+                    "options": [
+                        "📱 Mobile & Edge Applications",
+                        "💻 Enterprise Software",
+                        "🔬 Research & Academia"
+                    ]
+                }
+            ]
+            
+            Make questions and options SPECIFIC to the given topic.
+            Always include emojis for better visual appeal.
+            Keep options concise but informative.""",
         },
         {
             "role": "user",
-            "content": f"Generate clarifying questions for someone wanting to learn about: {prompt}",
+            "content": f"Create topic-specific questions and options for someone wanting to learn about: {prompt}",
         },
     ]
 
-    response = client.chat.completions.create(
-        model="gpt-4", messages=messages, temperature=0.7, max_tokens=500
-    )
-
-    return json.loads(response.choices[0].message.content.strip())
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4", messages=messages, temperature=0.7
+        )
+        questions = json.loads(response.choices[0].message.content)
+        return questions
+    except Exception as e:
+        st.error(f"Error generating questions: {str(e)}")
+        # Fallback to generic questions if generation fails
+        return [
+            {
+                "question": f"What's your current knowledge level in {prompt}?",
+                "options": [
+                    "🌱 Complete Beginner",
+                    "📚 Some Knowledge",
+                    "🎯 Intermediate",
+                    "🚀 Advanced",
+                ],
+            },
+            {
+                "question": "What's your main goal with this topic?",
+                "options": [
+                    "📖 Understanding Core Concepts",
+                    "💼 Practical Application",
+                    "🔬 Deep Expertise",
+                ],
+            },
+            {
+                "question": "How do you prefer to learn?",
+                "options": [
+                    "🎓 Structured Theory",
+                    "🛠️ Hands-on Practice",
+                    "🔄 Mixed Approach",
+                ],
+            },
+        ]
 
 
 def analyze_responses(prompt, questions, answers):
@@ -307,12 +366,36 @@ export default LearningFlow;
 
 
 def get_mock_questions():
-    """Return mock clarifying questions"""
-    return [
-        "What is your current level of understanding in this topic?",
-        "What specific aspects are you most interested in?",
-        "How do you plan to apply this knowledge?",
-    ]
+    """Return mock questions with options"""
+    return {
+        "questions": [
+            {
+                "question": "What is your current level of understanding in this topic?",
+                "options": [
+                    "Complete beginner",
+                    "Some basic knowledge",
+                    "Intermediate level",
+                    "Advanced practitioner",
+                ],
+            },
+            {
+                "question": "What is your primary learning goal?",
+                "options": [
+                    "Academic understanding",
+                    "Professional application",
+                    "Personal interest",
+                ],
+            },
+            {
+                "question": "How would you prefer to learn this topic?",
+                "options": [
+                    "Theory-first approach",
+                    "Practical examples",
+                    "Mix of both",
+                ],
+            },
+        ]
+    }
 
 
 def get_mock_learning_plan():
@@ -451,23 +534,28 @@ Practical Examples:
         for edge in edges
     ]
 
+    config = Config(
+        width=2600,
+        height=1400,
+        directed=True,
+        physics=False,
+        hierarchical={
+            "enabled": True,
+            "levelSeparation": 600,
+            "nodeSpacing": 800,
+            "direction": "UD",
+            "sortMethod": "directed",
+            "treeSpacing": 800,
+        },
+        smooth=True,
+        interaction={"doubleClick": False},
+    )
+
     # Create a new section for the subtopic diagram
     st.write(f"### Detailed View: {topic}")
 
     with st.container():
-        clicked_node = agraph(
-            nodes=ag_nodes,
-            edges=ag_edges,
-            config=Config(
-                width="100%",
-                height=700,
-                directed=True,
-                physics=True,
-                hierarchical=True,
-                smooth=True,
-                interaction={"doubleClick": False},
-            ),
-        )
+        clicked_node = agraph(nodes=ag_nodes, edges=ag_edges, config=config)
 
         if clicked_node:
             st.write("---")
@@ -501,8 +589,52 @@ def handle_node_click(node_id, nodes, learning_plan):
             ask_followup_question(clicked_node.label)
 
 
-# Start with the interactive learning journey
-st.title("Interactive Learning Diagram Generator")
+def wrap_text(text, max_chars=30):
+    """Wrap long text to multiple lines"""
+    words = text.split()
+    lines = []
+    current_line = []
+    current_length = 0
+
+    for word in words:
+        if current_length + len(word) + 1 <= max_chars:
+            current_line.append(word)
+            current_length += len(word) + 1
+        else:
+            lines.append(" ".join(current_line))
+            current_line = [word]
+            current_length = len(word)
+
+    if current_line:
+        lines.append(" ".join(current_line))
+
+    return "\n".join(lines)
+
+
+def get_unsplash_image(query):
+    """Get a relevant image from Unsplash API"""
+    UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY")
+
+    encoded_query = quote(query)
+    url = f"https://api.unsplash.com/search/photos?query={encoded_query}&per_page=1"
+
+    headers = {
+        "Authorization": f"Client-ID {UNSPLASH_ACCESS_KEY}",
+        "Accept-Version": "v1",
+    }
+
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("results") and len(data["results"]) > 0:
+                image_url = data["results"][0]["urls"]["regular"]
+                photographer = data["results"][0]["user"]["name"]
+                return image_url, photographer
+        return None, None
+    except Exception as e:
+        return None, None
+
 
 if "stage" not in st.session_state:
     st.session_state.stage = "initial"
@@ -514,72 +646,120 @@ if "answers" not in st.session_state:
     st.session_state.answers = []
 
 if st.session_state.stage == "initial":
-    # Add a toggle for testing mode
-    st.session_state.testing_mode = st.checkbox(
-        "Enable Testing Mode", value=True
-    )
+    st.title("What would you like to learn about?")
 
     user_prompt = st.text_area(
-        "What topic would you like to learn about?",
-        placeholder="Example: Neural Networks in Deep Learning",
+        label="Topic Input",  # Added label
+        label_visibility="collapsed",  # Hide the label
+        placeholder="Example: Machine Learning for Beginners",
         height=100,
     )
 
-    if st.button("Start Learning Journey") and user_prompt:
+    if (
+        st.button("Begin", type="primary") and user_prompt
+    ):  # Primary button for emphasis
+        # Store the original prompt
         st.session_state.original_prompt = user_prompt
-        # Use mock questions if in testing mode
-        st.session_state.questions = (
-            get_mock_questions()
-            if st.session_state.testing_mode
-            else get_initial_questions(user_prompt)
-        )
+        # Get customized questions based on the topic
+        questions = get_initial_questions(user_prompt)
+        st.session_state.questions = questions
+        st.session_state.current_question = 0  # Track which question we're on
+        st.session_state.answers = []  # Store answers
         st.session_state.stage = "questioning"
         st.rerun()
 
 elif st.session_state.stage == "questioning":
-    st.write("### Let's understand your needs better")
-    st.write(f"Topic: {st.session_state.original_prompt}")
+    st.title(f"Let's learn about: {st.session_state.original_prompt}")
 
-    # Add quick fill button for testing
-    if st.session_state.testing_mode and st.button("Fill with Mock Answers"):
-        st.session_state.learning_plan = get_mock_learning_plan()
-        st.session_state.stage = "display"
-        st.rerun()
-
-    answers = []
-    for q in st.session_state.questions:
-        answer = st.text_input(q)
-        answers.append(answer)
-
-    if st.button("Generate Learning Plan") and all(answers):
-        # Use mock data if in testing mode
-        learning_plan = (
-            get_mock_learning_plan()
-            if st.session_state.testing_mode
-            else analyze_responses(
-                st.session_state.original_prompt,
-                st.session_state.questions,
-                answers,
-            )
+    # Add image right after the title
+    image_url, photographer = get_unsplash_image(
+        st.session_state.original_prompt
+    )
+    if image_url:
+        st.image(
+            image=image_url,
+            use_container_width=True,
+            caption=f"📸 Photo by {photographer} on Unsplash",
         )
 
-        st.session_state.learning_plan = learning_plan
-        st.session_state.last_prompt = st.session_state.original_prompt
-        save_to_history(st.session_state.original_prompt, learning_plan)
-        st.session_state.stage = "display"
-        st.rerun()
+    current_q = st.session_state.current_question
+    question = st.session_state.questions[current_q]
+
+    # Display current question
+    st.write(f"### {question['question']}")
+
+    # Create buttons for each option
+    cols = st.columns(len(question["options"]))
+    for idx, (col, option) in enumerate(zip(cols, question["options"])):
+        with col:
+            if st.button(
+                option, key=f"q{current_q}_opt{idx}", use_container_width=True
+            ):
+                st.session_state.answers.append(option)
+
+                # Move to next question or generate plan
+                if current_q + 1 < len(st.session_state.questions):
+                    st.session_state.current_question += 1
+                else:
+                    # Generate learning plan
+                    learning_plan = analyze_responses(
+                        st.session_state.original_prompt,
+                        [q["question"] for q in st.session_state.questions],
+                        st.session_state.answers,
+                    )
+
+                    # Save to history before updating session state
+                    save_to_history(
+                        st.session_state.original_prompt, learning_plan
+                    )
+
+                    st.session_state.learning_plan = learning_plan
+                    st.session_state.stage = "display"
+                st.rerun()
+
+    # Show progress
+    progress = (current_q + 1) / len(st.session_state.questions)
+    st.progress(progress)
 
 elif st.session_state.stage == "display":
-    if "learning_plan" not in st.session_state:
-        st.error("No learning plan found. Please start over.")
-        st.session_state.stage = "initial"
-        st.rerun()
-
     with st.container():
         st.title(st.session_state.original_prompt)
 
+        # Get and display relevant image
+        image_url, photographer = get_unsplash_image(
+            st.session_state.original_prompt
+        )
+        if image_url:
+            st.image(image_url, use_column_width=True)
+            st.caption(f"📸 Photo by {photographer} on Unsplash")
+
+        # Improve text formatting with a max-width container and better spacing
+        st.markdown(
+            """
+            <style>
+            .learning-plan-text {
+                max-width: 800px;
+                line-height: 1.6;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            .learning-plan-text p {
+                margin-bottom: 1em;
+            }
+            .learning-plan-text ul {
+                margin-left: 20px;
+                margin-bottom: 1em;
+            }
+            </style>
+        """,
+            unsafe_allow_html=True,
+        )
+
         with st.expander("📋 Learning Plan", expanded=True):
-            st.write(st.session_state.learning_plan)
+            st.markdown(
+                f'<div class="learning-plan-text">{st.session_state.learning_plan}</div>',
+                unsafe_allow_html=True,
+            )
 
         try:
             nodes, edges = convert_to_graph_data(st.session_state.learning_plan)
@@ -588,7 +768,7 @@ elif st.session_state.stage == "display":
             ag_nodes = [
                 Node(
                     id=node["id"],
-                    label=node["data"]["title"],
+                    label=wrap_text(node["data"]["title"]),
                     size=get_node_size(node["data"]["type"]),
                     color=get_node_color(node["data"]["type"]),
                     shadow=True,
@@ -612,13 +792,20 @@ elif st.session_state.stage == "display":
             ]
 
             config = Config(
-                width="100%",
-                height=700,
+                width=2600,
+                height=1400,
                 directed=True,
-                physics=True,
-                hierarchical=True,
+                physics=False,
+                hierarchical={
+                    "enabled": True,
+                    "levelSeparation": 600,
+                    "nodeSpacing": 800,
+                    "direction": "UD",
+                    "sortMethod": "directed",
+                    "treeSpacing": 800,
+                },
                 smooth=True,
-                interaction={"doubleClick": False},  # Disable double-click
+                interaction={"doubleClick": False},
             )
 
             # Render the graph
