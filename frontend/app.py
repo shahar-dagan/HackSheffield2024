@@ -676,7 +676,7 @@ if st.session_state.current_page == "main":
             desired_resolution = (512, 512)
             uploaded_image = uploaded_image.resize(desired_resolution)
 
-            # Display the uploaded image
+            # Display the uploaded image with updated parameter
             st.image(
                 uploaded_image,
                 caption="Uploaded Math Expression",
@@ -783,7 +783,7 @@ if st.session_state.current_page == "main":
                 st.session_state.original_prompt
             )
             if image_url:
-                st.image(image_url, use_column_width=True)
+                st.image(image_url, use_container_width=True)
                 st.caption(f"📸 Photo by {photographer} on Unsplash")
 
             # Improve text formatting with a max-width container and better spacing
