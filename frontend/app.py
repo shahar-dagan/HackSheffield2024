@@ -8,6 +8,9 @@ import uuid
 from streamlit_elements import elements, dashboard, mui, html, sync, nivo
 from streamlit_agraph import agraph, Node, Edge, Config
 
+# Set the page layout to wide
+st.set_page_config(layout="wide")
+
 # Load environment variables
 load_dotenv()
 
@@ -421,10 +424,7 @@ Practical Examples:
     # Convert the subtopic plan to a new diagram
     nodes, edges = convert_to_graph_data(subtopic_plan)
 
-    # Create a new section for the subtopic diagram
-    st.write(f"### Detailed View: {topic}")
-
-    # Convert to agraph format and display
+    # Convert to agraph format
     ag_nodes = [
         Node(
             id=node["id"],
@@ -451,17 +451,27 @@ Practical Examples:
         for edge in edges
     ]
 
-    config = Config(
-        width="100%",
-        height=500,
-        directed=True,
-        physics=True,
-        hierarchical=True,
-        smooth=True,
-        interaction={"doubleClick": False},  # Disable double-click
-    )
+    # Create a new section for the subtopic diagram
+    st.write(f"### Detailed View: {topic}")
 
-    agraph(nodes=ag_nodes, edges=ag_edges, config=config)
+    with st.container():
+        clicked_node = agraph(
+            nodes=ag_nodes,
+            edges=ag_edges,
+            config=Config(
+                width="100%",
+                height=700,
+                directed=True,
+                physics=True,
+                hierarchical=True,
+                smooth=True,
+                interaction={"doubleClick": False},
+            ),
+        )
+
+        if clicked_node:
+            st.write("---")
+            handle_node_click(clicked_node, ag_nodes, subtopic_plan)
 
 
 def handle_node_click(node_id, nodes, learning_plan):
