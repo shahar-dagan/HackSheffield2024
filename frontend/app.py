@@ -615,22 +615,9 @@ elif st.session_state.stage == "display":
             clicked_node = agraph(nodes=ag_nodes, edges=ag_edges, config=config)
 
             if clicked_node:
-                st.write("---")  # Add a visual separator
+                st.write("---")
                 handle_node_click(
                     clicked_node, ag_nodes, st.session_state.learning_plan
-                )
-                # Auto-scroll to the interaction section
-                st.markdown(
-                    f'<div id="interaction-section"></div>',
-                    unsafe_allow_html=True,
-                )
-                st.markdown(
-                    """
-                    <script>
-                        document.getElementById('interaction-section').scrollIntoView();
-                    </script>
-                    """,
-                    unsafe_allow_html=True,
                 )
 
         except Exception as e:
