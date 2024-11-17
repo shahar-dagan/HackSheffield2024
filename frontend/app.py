@@ -98,25 +98,58 @@ def save_to_history(prompt, learning_plan):
 
 
 def get_initial_questions(prompt):
-    """Generate relevant questions to better understand the user's needs"""
+    """Generate relevant questions and their multiple choice options"""
+    if st.session_state.get("testing_mode", True):
+        return [
+            {
+                "question": f"What's your current knowledge level in {prompt}?",
+                "options": [
+                    "🌱 Complete Beginner",
+                    "📚 Some Knowledge",
+                    "🎯 Intermediate",
+                    "🚀 Advanced",
+                ],
+            },
+            {
+                "question": "How do you prefer to learn?",
+                "options": [
+                    "🎓 Theory First",
+                    "🛠️ Hands-on Practice",
+                    "🔄 Mix of Both",
+                ],
+            },
+            {
+                "question": "What's your main goal?",
+                "options": [
+                    "📖 Academic Study",
+                    "💼 Professional Use",
+                    "🎨 Personal Project",
+                ],
+            },
+        ]
+
+    # If not in testing mode, generate custom questions via GPT
     messages = [
         {
             "role": "system",
-            "content": """You are an expert teacher who helps break down complex topics. 
-            Generate 3-4 specific questions that will help clarify what aspects of the topic the user wants to understand.
-            Format your response as a JSON array of strings, containing only the questions.""",
+            "content": """Generate 3 relevant questions to understand the user's learning needs for their topic.
+            Each question should have 3-4 clear, concise multiple choice options.
+            Make the options specific to the topic when possible.
+            Format as JSON array of question-options pairs.""",
         },
         {
             "role": "user",
-            "content": f"Generate clarifying questions for someone wanting to learn about: {prompt}",
+            "content": f"Create questions for someone wanting to learn about: {prompt}",
         },
     ]
 
-    response = client.chat.completions.create(
-        model="gpt-4", messages=messages, temperature=0.7, max_tokens=500
-    )
-
-    return json.loads(response.choices[0].message.content.strip())
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4", messages=messages, temperature=0.7
+        )
+        return json.loads(response.choices[0].message.content)
+    except:
+        return get_mock_questions()  # Fallback to default questions
 
 
 def analyze_responses(prompt, questions, answers):
@@ -307,12 +340,36 @@ export default LearningFlow;
 
 
 def get_mock_questions():
-    """Return mock clarifying questions"""
-    return [
-        "What is your current level of understanding in this topic?",
-        "What specific aspects are you most interested in?",
-        "How do you plan to apply this knowledge?",
-    ]
+    """Return mock questions with options"""
+    return {
+        "questions": [
+            {
+                "question": "What is your current level of understanding in this topic?",
+                "options": [
+                    "Complete beginner",
+                    "Some basic knowledge",
+                    "Intermediate level",
+                    "Advanced practitioner",
+                ],
+            },
+            {
+                "question": "What is your primary learning goal?",
+                "options": [
+                    "Academic understanding",
+                    "Professional application",
+                    "Personal interest",
+                ],
+            },
+            {
+                "question": "How would you prefer to learn this topic?",
+                "options": [
+                    "Theory-first approach",
+                    "Practical examples",
+                    "Mix of both",
+                ],
+            },
+        ]
+    }
 
 
 def get_mock_learning_plan():
@@ -514,60 +571,62 @@ if "answers" not in st.session_state:
     st.session_state.answers = []
 
 if st.session_state.stage == "initial":
-    # Add a toggle for testing mode
-    st.session_state.testing_mode = st.checkbox(
-        "Enable Testing Mode", value=True
-    )
+    st.title("What would you like to learn about?")
 
     user_prompt = st.text_area(
-        "What topic would you like to learn about?",
-        placeholder="Example: Neural Networks in Deep Learning",
+        "",  # No label, keeping it clean
+        placeholder="Example: Machine Learning for Beginners",
         height=100,
     )
 
-    if st.button("Start Learning Journey") and user_prompt:
+    if (
+        st.button("Begin", type="primary") and user_prompt
+    ):  # Primary button for emphasis
+        # Store the original prompt
         st.session_state.original_prompt = user_prompt
-        # Use mock questions if in testing mode
-        st.session_state.questions = (
-            get_mock_questions()
-            if st.session_state.testing_mode
-            else get_initial_questions(user_prompt)
-        )
+        # Get customized questions based on the topic
+        questions = get_initial_questions(user_prompt)
+        st.session_state.questions = questions
+        st.session_state.current_question = 0  # Track which question we're on
+        st.session_state.answers = []  # Store answers
         st.session_state.stage = "questioning"
         st.rerun()
 
 elif st.session_state.stage == "questioning":
-    st.write("### Let's understand your needs better")
-    st.write(f"Topic: {st.session_state.original_prompt}")
+    st.title(f"Let's learn about: {st.session_state.original_prompt}")
 
-    # Add quick fill button for testing
-    if st.session_state.testing_mode and st.button("Fill with Mock Answers"):
-        st.session_state.learning_plan = get_mock_learning_plan()
-        st.session_state.stage = "display"
-        st.rerun()
+    current_q = st.session_state.current_question
+    question = st.session_state.questions[current_q]
 
-    answers = []
-    for q in st.session_state.questions:
-        answer = st.text_input(q)
-        answers.append(answer)
+    # Display current question
+    st.write(f"### {question['question']}")
 
-    if st.button("Generate Learning Plan") and all(answers):
-        # Use mock data if in testing mode
-        learning_plan = (
-            get_mock_learning_plan()
-            if st.session_state.testing_mode
-            else analyze_responses(
-                st.session_state.original_prompt,
-                st.session_state.questions,
-                answers,
-            )
-        )
+    # Create buttons for each option
+    cols = st.columns(len(question["options"]))
+    for idx, (col, option) in enumerate(zip(cols, question["options"])):
+        with col:
+            if st.button(
+                option, key=f"q{current_q}_opt{idx}", use_container_width=True
+            ):
+                st.session_state.answers.append(option)
 
-        st.session_state.learning_plan = learning_plan
-        st.session_state.last_prompt = st.session_state.original_prompt
-        save_to_history(st.session_state.original_prompt, learning_plan)
-        st.session_state.stage = "display"
-        st.rerun()
+                # Move to next question or generate plan
+                if current_q + 1 < len(st.session_state.questions):
+                    st.session_state.current_question += 1
+                else:
+                    # Generate learning plan
+                    learning_plan = analyze_responses(
+                        st.session_state.original_prompt,
+                        [q["question"] for q in st.session_state.questions],
+                        st.session_state.answers,
+                    )
+                    st.session_state.learning_plan = learning_plan
+                    st.session_state.stage = "display"
+                st.rerun()
+
+    # Show progress
+    progress = (current_q + 1) / len(st.session_state.questions)
+    st.progress(progress)
 
 elif st.session_state.stage == "display":
     if "learning_plan" not in st.session_state:
