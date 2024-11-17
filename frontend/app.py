@@ -484,9 +484,16 @@ def generate_subtopic_diagram(topic, original_plan):
     messages = [
         {
             "role": "system",
-            "content": """You are an expert teacher. Given a topic from a learning plan,
-            create a detailed breakdown of that specific topic. Format your response with
-            clear headings and bullet points, focusing only on this subtopic.""",
+            "content": """You are an expert teacher creating detailed topic breakdowns.
+            Given a topic from a learning plan, create a structured explanation with:
+            
+            1. Core Components: Essential elements and concepts
+            2. Implementation Steps: How to learn and apply these concepts
+            3. Practical Examples: Real-world applications and cases
+            4. Common Challenges: Potential difficulties and solutions
+            
+            Format your response with clear headings and bullet points.
+            Keep explanations clear and focused on this specific subtopic.""",
         },
         {
             "role": "user",
@@ -497,86 +504,79 @@ def generate_subtopic_diagram(topic, original_plan):
         },
     ]
 
-    if st.session_state.testing_mode:
-        # Mock response for testing
-        subtopic_plan = f"""Detailed Breakdown: {topic}
-
-Core Components:
-- Component 1: Key details and explanation
-- Component 2: Further breakdown
-- Component 3: Specific elements
-
-Implementation Steps:
-- Step 1: Getting started
-- Step 2: Building understanding
-- Step 3: Advanced concepts
-
-Practical Examples:
-- Example 1: Real-world application
-- Example 2: Case study
-- Example 3: Practical scenario"""
-    else:
-        response = client.chat.completions.create(
-            model="gpt-4", messages=messages, temperature=0.7, max_tokens=1000
-        )
-        subtopic_plan = response.choices[0].message.content.strip()
+    # Generate the subtopic plan using GPT-4
+    response = client.chat.completions.create(
+        model="gpt-4", messages=messages, temperature=0.7, max_tokens=1000
+    )
+    subtopic_plan = response.choices[0].message.content.strip()
 
     # Convert the subtopic plan to a new diagram
-    nodes, edges = convert_to_graph_data(subtopic_plan)
+    try:
+        nodes, edges = convert_to_graph_data(subtopic_plan)
 
-    # Convert to agraph format
-    ag_nodes = [
-        Node(
-            id=node["id"],
-            label=node["data"]["title"],
-            size=get_node_size(node["data"]["type"]),
-            color=get_node_color(node["data"]["type"]),
-            shadow=True,
-            font=get_node_font(node["data"]["type"]),
-            borderWidth=2,
-            borderColor=get_border_color(node["data"]["type"]),
-            shape=get_node_shape(node["data"]["type"]),
+        # Convert to agraph format
+        ag_nodes = [
+            Node(
+                id=node["id"],
+                label=wrap_text(node["data"]["title"]),
+                size=get_node_size(node["data"]["type"]),
+                color=get_node_color(node["data"]["type"]),
+                shadow=True,
+                font=get_node_font(node["data"]["type"]),
+                borderWidth=2,
+                borderColor=get_border_color(node["data"]["type"]),
+                shape=get_node_shape(node["data"]["type"]),
+            )
+            for node in nodes
+        ]
+
+        ag_edges = [
+            Edge(
+                source=edge["source"],
+                target=edge["target"],
+                arrow=True,
+                color="#666666",
+                width=2,
+            )
+            for edge in edges
+        ]
+
+        config = Config(
+            width=2600,
+            height=1400,
+            directed=True,
+            physics=False,
+            hierarchical={
+                "enabled": True,
+                "levelSeparation": 600,
+                "nodeSpacing": 800,
+                "direction": "UD",
+                "sortMethod": "directed",
+                "treeSpacing": 800,
+            },
+            smooth=True,
+            interaction={"doubleClick": False},
         )
-        for node in nodes
-    ]
 
-    ag_edges = [
-        Edge(
-            source=edge["source"],
-            target=edge["target"],
-            arrow=True,
-            color="#666666",
-            width=2,
-        )
-        for edge in edges
-    ]
+        # Create a new section for the subtopic diagram
+        st.write(f"### Detailed View: {topic}")
 
-    config = Config(
-        width=2600,
-        height=1400,
-        directed=True,
-        physics=False,
-        hierarchical={
-            "enabled": True,
-            "levelSeparation": 600,
-            "nodeSpacing": 800,
-            "direction": "UD",
-            "sortMethod": "directed",
-            "treeSpacing": 800,
-        },
-        smooth=True,
-        interaction={"doubleClick": False},
-    )
+        # Show the text version first
+        with st.expander("📝 Text Breakdown", expanded=True):
+            st.markdown(subtopic_plan)
 
-    # Create a new section for the subtopic diagram
-    st.write(f"### Detailed View: {topic}")
+        # Then show the graph
+        st.write("### Visual Breakdown")
+        clicked_subnode = agraph(nodes=ag_nodes, edges=ag_edges, config=config)
 
-    with st.container():
-        clicked_node = agraph(nodes=ag_nodes, edges=ag_edges, config=config)
+        if clicked_subnode:
+            handle_node_click(clicked_subnode, ag_nodes, subtopic_plan)
 
-        if clicked_node:
-            st.write("---")
-            handle_node_click(clicked_node, ag_nodes, subtopic_plan)
+    except Exception as e:
+        st.error(f"Error generating subtopic diagram: {str(e)}")
+        # Fallback to showing just the text
+        st.write(f"### Detailed Breakdown: {topic}")
+        st.markdown(subtopic_plan)
 
 
 def handle_node_click(node_id, nodes, learning_plan):
@@ -731,6 +731,16 @@ with st.sidebar:
                 st.session_state.original_prompt = entry["prompt"]
                 st.session_state.stage = "display"
                 st.rerun()
+
+# Add this with your other session state initializations at the start of the app
+if "stage" not in st.session_state:
+    st.session_state.stage = "initial"
+if "questions" not in st.session_state:
+    st.session_state.questions = None
+if "answers" not in st.session_state:
+    st.session_state.answers = []
+if "testing_mode" not in st.session_state:
+    st.session_state.testing_mode = False
 
 # Remove references to current_page and directly show main content
 if "stage" not in st.session_state:
