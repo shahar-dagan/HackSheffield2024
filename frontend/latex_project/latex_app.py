@@ -2,7 +2,6 @@ import streamlit as st
 from PIL import Image
 import requests
 from io import BytesIO
-from pylatex import Document, NoEscape
 import tempfile
 import subprocess
 import base64
@@ -11,6 +10,16 @@ import openai
 import json
 import os
 from dotenv import load_dotenv
+
+# Use relative path for loading files
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Load model prompt
+with open(os.path.join(current_dir, "model_prompt.txt"), "r") as file:
+    prompt = file.read()
+
+with open(os.path.join(current_dir, "start_boiler_plate.txt"), "r") as file:
+    start_boiler_plate = file.read()
 
 # Load environment variables
 load_dotenv()
@@ -22,10 +31,6 @@ if not api_key:
     st.stop()
 
 client = openai.OpenAI(api_key=api_key)
-
-# Load model prompt
-with open("model_prompt.txt", "r") as file:
-    prompt = file.read()
 
 
 def convert_image_to_latex_code(image_data, image_type):
@@ -76,9 +81,6 @@ def convert_image_to_latex_code(image_data, image_type):
 
     latex = latex[start:end]
 
-    with open("start_boiler_plate.txt", "r") as file:
-        start_boiler_plate = file.read()
-
     end_boiler_plate = "\n\end{document}"
     # end_boiler_plate = ""
 
@@ -119,48 +121,57 @@ def generate_pdf(latex_text):
     # create file of pdf of this latex locally
 
 
-# Step 1: Set up Streamlit interface
-st.title("Math Image to LaTeX PDF Converter")
-st.markdown(
-    "Upload an image containing mathematical expressions, and we'll convert it to a downloadable PDF."
-)
-
-uploaded_image_data = st.file_uploader(
-    "Upload an Image", type=["png", "jpg", "jpeg"]
-)
-
-if uploaded_image_data:
-    # Step 2: Display the uploaded image
-    file_format = uploaded_image_data.type.split("/")[1].upper()
-
-    uploaded_image = Image.open(uploaded_image_data)
-
-    desired_resolution = (512, 512)
-    uploaded_image = uploaded_image.resize(desired_resolution)
-
-    st.image(uploaded_image, caption="Uploaded Image", use_column_width=True)
-
-    buffer = io.BytesIO()
-    uploaded_image.save(
-        buffer, format=file_format
-    )  # Dynamically use the format based on the uploaded file type
-    buffer.seek(0)
-
-    # image_bytes = uploaded_image.decode('utf-8')
-    # image_bytes = base64.b64decode(uploaded_image)
-    encoded_image = base64.b64encode(buffer.read()).decode("utf-8")
-
-    latex_code = convert_image_to_latex_code(encoded_image, file_format.lower())
-
-    st.text_area("Extracted LaTeX Code", latex_code)
-
-    # Step 4: Convert LaTeX to PDF
-    pdf_data = generate_pdf(latex_code)
-
-    # Step 5: Provide download link
-    st.download_button(
-        label="Download PDF",
-        data=pdf_data,
-        file_name="output.pdf",
-        mime="application/pdf",
+def run_latex_app():
+    """Main function to run the LaTeX converter app"""
+    st.title("Math Image to LaTeX PDF Converter")
+    st.markdown(
+        "Upload an image containing mathematical expressions, and we'll convert it to a downloadable PDF."
     )
+
+    uploaded_image_data = st.file_uploader(
+        "Upload an Image", type=["png", "jpg", "jpeg"]
+    )
+
+    if uploaded_image_data:
+        # Step 2: Display the uploaded image
+        file_format = uploaded_image_data.type.split("/")[1].upper()
+
+        uploaded_image = Image.open(uploaded_image_data)
+
+        desired_resolution = (512, 512)
+        uploaded_image = uploaded_image.resize(desired_resolution)
+
+        st.image(
+            uploaded_image, caption="Uploaded Image", use_column_width=True
+        )
+
+        buffer = io.BytesIO()
+        uploaded_image.save(
+            buffer, format=file_format
+        )  # Dynamically use the format based on the uploaded file type
+        buffer.seek(0)
+
+        # image_bytes = uploaded_image.decode('utf-8')
+        # image_bytes = base64.b64decode(uploaded_image)
+        encoded_image = base64.b64encode(buffer.read()).decode("utf-8")
+
+        latex_code = convert_image_to_latex_code(
+            encoded_image, file_format.lower()
+        )
+
+        st.text_area("Extracted LaTeX Code", latex_code)
+
+        # Step 4: Convert LaTeX to PDF
+        pdf_data = generate_pdf(latex_code)
+
+        # Step 5: Provide download link
+        st.download_button(
+            label="Download PDF",
+            data=pdf_data,
+            file_name="output.pdf",
+            mime="application/pdf",
+        )
+
+
+if __name__ == "__main__":
+    run_latex_app()
