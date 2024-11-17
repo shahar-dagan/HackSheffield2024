@@ -617,6 +617,12 @@ elif st.session_state.stage == "questioning":
                         [q["question"] for q in st.session_state.questions],
                         st.session_state.answers,
                     )
+
+                    # Save to history before updating session state
+                    save_to_history(
+                        st.session_state.original_prompt, learning_plan
+                    )
+
                     st.session_state.learning_plan = learning_plan
                     st.session_state.stage = "display"
                 st.rerun()
@@ -634,8 +640,33 @@ elif st.session_state.stage == "display":
     with st.container():
         st.title(st.session_state.original_prompt)
 
+        # Improve text formatting with a max-width container and better spacing
+        st.markdown(
+            """
+            <style>
+            .learning-plan-text {
+                max-width: 800px;
+                line-height: 1.6;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            .learning-plan-text p {
+                margin-bottom: 1em;
+            }
+            .learning-plan-text ul {
+                margin-left: 20px;
+                margin-bottom: 1em;
+            }
+            </style>
+        """,
+            unsafe_allow_html=True,
+        )
+
         with st.expander("📋 Learning Plan", expanded=True):
-            st.write(st.session_state.learning_plan)
+            st.markdown(
+                f'<div class="learning-plan-text">{st.session_state.learning_plan}</div>',
+                unsafe_allow_html=True,
+            )
 
         try:
             nodes, edges = convert_to_graph_data(st.session_state.learning_plan)
