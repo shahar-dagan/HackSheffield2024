@@ -582,6 +582,28 @@ def handle_node_click(node_id, nodes, learning_plan):
             ask_followup_question(clicked_node.label)
 
 
+def wrap_text(text, max_chars=30):
+    """Wrap long text to multiple lines"""
+    words = text.split()
+    lines = []
+    current_line = []
+    current_length = 0
+
+    for word in words:
+        if current_length + len(word) + 1 <= max_chars:
+            current_line.append(word)
+            current_length += len(word) + 1
+        else:
+            lines.append(" ".join(current_line))
+            current_line = [word]
+            current_length = len(word)
+
+    if current_line:
+        lines.append(" ".join(current_line))
+
+    return "\n".join(lines)
+
+
 if "stage" not in st.session_state:
     st.session_state.stage = "initial"
 
@@ -699,7 +721,7 @@ elif st.session_state.stage == "display":
             ag_nodes = [
                 Node(
                     id=node["id"],
-                    label=node["data"]["title"],
+                    label=wrap_text(node["data"]["title"]),
                     size=get_node_size(node["data"]["type"]),
                     color=get_node_color(node["data"]["type"]),
                     shadow=True,
