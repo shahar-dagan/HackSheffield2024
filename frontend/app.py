@@ -99,7 +99,54 @@ def save_to_history(prompt, learning_plan):
 
 def get_initial_questions(prompt):
     """Generate relevant questions and their multiple choice options"""
-    if st.session_state.get("testing_mode", True):
+    messages = [
+        {
+            "role": "system",
+            "content": """You are an expert teacher who helps understand learners' needs.
+            Generate 3 relevant questions to understand what aspects of the topic the user wants to learn.
+            For each question, provide 3-4 multiple choice options that are SPECIFIC to the topic.
+            
+            Format your response as a JSON array of question-option pairs.
+            Example for "Machine Learning":
+            [
+                {
+                    "question": "What aspect of Machine Learning interests you most?",
+                    "options": [
+                        "🤖 Supervised Learning & Classification",
+                        "🧠 Neural Networks & Deep Learning",
+                        "📊 Data Preprocessing & Feature Engineering",
+                        "🔄 Reinforcement Learning"
+                    ]
+                },
+                {
+                    "question": "Which ML application area is most relevant to you?",
+                    "options": [
+                        "📱 Mobile & Edge Applications",
+                        "💻 Enterprise Software",
+                        "🔬 Research & Academia"
+                    ]
+                }
+            ]
+            
+            Make questions and options SPECIFIC to the given topic.
+            Always include emojis for better visual appeal.
+            Keep options concise but informative.""",
+        },
+        {
+            "role": "user",
+            "content": f"Create topic-specific questions and options for someone wanting to learn about: {prompt}",
+        },
+    ]
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4", messages=messages, temperature=0.7
+        )
+        questions = json.loads(response.choices[0].message.content)
+        return questions
+    except Exception as e:
+        st.error(f"Error generating questions: {str(e)}")
+        # Fallback to generic questions if generation fails
         return [
             {
                 "question": f"What's your current knowledge level in {prompt}?",
@@ -111,45 +158,22 @@ def get_initial_questions(prompt):
                 ],
             },
             {
-                "question": "How do you prefer to learn?",
+                "question": "What's your main goal with this topic?",
                 "options": [
-                    "🎓 Theory First",
-                    "🛠️ Hands-on Practice",
-                    "🔄 Mix of Both",
+                    "📖 Understanding Core Concepts",
+                    "💼 Practical Application",
+                    "🔬 Deep Expertise",
                 ],
             },
             {
-                "question": "What's your main goal?",
+                "question": "How do you prefer to learn?",
                 "options": [
-                    "📖 Academic Study",
-                    "💼 Professional Use",
-                    "🎨 Personal Project",
+                    "🎓 Structured Theory",
+                    "🛠️ Hands-on Practice",
+                    "🔄 Mixed Approach",
                 ],
             },
         ]
-
-    # If not in testing mode, generate custom questions via GPT
-    messages = [
-        {
-            "role": "system",
-            "content": """Generate 3 relevant questions to understand the user's learning needs for their topic.
-            Each question should have 3-4 clear, concise multiple choice options.
-            Make the options specific to the topic when possible.
-            Format as JSON array of question-options pairs.""",
-        },
-        {
-            "role": "user",
-            "content": f"Create questions for someone wanting to learn about: {prompt}",
-        },
-    ]
-
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4", messages=messages, temperature=0.7
-        )
-        return json.loads(response.choices[0].message.content)
-    except:
-        return get_mock_questions()  # Fallback to default questions
 
 
 def analyze_responses(prompt, questions, answers):
