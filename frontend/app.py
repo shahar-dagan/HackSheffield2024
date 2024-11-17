@@ -106,15 +106,41 @@ def save_to_history(prompt, learning_plan):
 
 def get_initial_questions(prompt):
     """Generate relevant questions and their multiple choice options"""
+    # Check if there's LaTeX code in the session state
+    latex_context = ""
+    if hasattr(st.session_state, "latex_code") and st.session_state.latex_code:
+        latex_context = f"\nThe topic includes this mathematical expression: {st.session_state.latex_code}"
+
     system_message = """You are an expert teacher who helps understand learners' needs.
-    If the prompt includes LaTeX mathematical expressions, consider them when generating questions.
     Generate 3 relevant questions to understand what aspects of the topic the user wants to learn.
     For each question, provide 3-4 multiple choice options that are SPECIFIC to the topic.
-    """
+    
+    If mathematical expressions are provided, include questions about mathematical understanding and application.
+    
+    Format your response as a JSON array of question-option pairs.
+    Example for "Machine Learning":
+    [
+        {
+            "question": "What aspect of Machine Learning interests you most?",
+            "options": [
+                "🤖 Supervised Learning & Classification",
+                "🧠 Neural Networks & Deep Learning",
+                "📊 Data Preprocessing & Feature Engineering",
+                "🔄 Reinforcement Learning"
+            ]
+        }
+    ]
+    
+    Make questions and options SPECIFIC to the given topic.
+    Always include emojis for better visual appeal.
+    Keep options concise but informative."""
 
     messages = [
         {"role": "system", "content": system_message},
-        {"role": "user", "content": f"Generate questions for: {prompt}"},
+        {
+            "role": "user",
+            "content": f"Create topic-specific questions and options for someone wanting to learn about: {prompt}{latex_context}",
+        },
     ]
 
     try:
