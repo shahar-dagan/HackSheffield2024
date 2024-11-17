@@ -15,13 +15,15 @@
 \maketitle
 \begin{align}
 	\begin{bmatrix}
-		a & b \\
-		c & d
-	\end{bmatrix}^T = \frac{1}{ad - bc} \begin{bmatrix}
-		d & -b \\
-		-c & a
-	\end{bmatrix} \quad &\text{(Transpose of a matrix and its inverse)} \\ 
-	\forall M \in M_2(\mathbb{R}), \ |M| \neq 0 \quad &\text{(Condition for invertibility)} \\ 
-	\exists M \in M_2(\mathbb{R}) : M^{-1} = I_2 \quad &\text{(Existence of an inverse matrix)}
+	a & b \\
+	c & d
+	\end{bmatrix} \cdot \begin{bmatrix}
+	d & -b \\
+	-c & a
+	\end{bmatrix} = \frac{1}{ad - bc} \quad &\text{(Matrix multiplication and determinant)} \\ 
+	\forall M \in M_2(\mathbb{R}) \quad &\text{(For all matrices in } M_2 \text{)} \\ 
+	|M| \neq 0 \quad &\text{(Condition for invertibility)} \\ 
+	\Rightarrow E_{M^{-1}} \in M_2(\mathbb{R}) \quad &\text{(Inverse exists)} \\ 
+	M \cdot M^{-1} = m^{-1} \cdot I_2 \quad &\text{(Multiplying by the inverse gives identity)}
 \end{align}
 \end{document}
