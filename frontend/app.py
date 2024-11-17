@@ -11,6 +11,9 @@ import requests
 from urllib.parse import quote
 import sys
 from pathlib import Path
+from PIL import Image
+import io
+import base64
 
 # Set the page layout to wide
 st.set_page_config(layout="wide")
@@ -103,43 +106,15 @@ def save_to_history(prompt, learning_plan):
 
 def get_initial_questions(prompt):
     """Generate relevant questions and their multiple choice options"""
+    system_message = """You are an expert teacher who helps understand learners' needs.
+    If the prompt includes LaTeX mathematical expressions, consider them when generating questions.
+    Generate 3 relevant questions to understand what aspects of the topic the user wants to learn.
+    For each question, provide 3-4 multiple choice options that are SPECIFIC to the topic.
+    """
+
     messages = [
-        {
-            "role": "system",
-            "content": """You are an expert teacher who helps understand learners' needs.
-            Generate 3 relevant questions to understand what aspects of the topic the user wants to learn.
-            For each question, provide 3-4 multiple choice options that are SPECIFIC to the topic.
-            
-            Format your response as a JSON array of question-option pairs.
-            Example for "Machine Learning":
-            [
-                {
-                    "question": "What aspect of Machine Learning interests you most?",
-                    "options": [
-                        "🤖 Supervised Learning & Classification",
-                        "🧠 Neural Networks & Deep Learning",
-                        "📊 Data Preprocessing & Feature Engineering",
-                        "🔄 Reinforcement Learning"
-                    ]
-                },
-                {
-                    "question": "Which ML application area is most relevant to you?",
-                    "options": [
-                        "📱 Mobile & Edge Applications",
-                        "💻 Enterprise Software",
-                        "🔬 Research & Academia"
-                    ]
-                }
-            ]
-            
-            Make questions and options SPECIFIC to the given topic.
-            Always include emojis for better visual appeal.
-            Keep options concise but informative.""",
-        },
-        {
-            "role": "user",
-            "content": f"Create topic-specific questions and options for someone wanting to learn about: {prompt}",
-        },
+        {"role": "system", "content": system_message},
+        {"role": "user", "content": f"Generate questions for: {prompt}"},
     ]
 
     try:
@@ -181,35 +156,25 @@ def get_initial_questions(prompt):
 
 
 def analyze_responses(prompt, questions, answers):
-    """Analyze user's responses and create a detailed learning plan"""
-    # Create a formatted string of Q&A pairs
-    qa_pairs = "\n".join(
-        [f"Q: {q}\nA: {a}" for q, a in zip(questions, answers)]
-    )
+    """Generate a personalized learning plan based on user responses"""
+    # Include the LaTeX code in the analysis if present
+    latex_context = ""
+    if hasattr(st.session_state, "latex_code") and st.session_state.latex_code:
+        latex_context = f"\nThe learning plan should incorporate this mathematical expression: {st.session_state.latex_code}"
 
     messages = [
         {
             "role": "system",
-            "content": """You are an expert teacher who creates detailed learning plans.
-            Based on the user's topic and their responses to the clarifying questions,
-            create a structured learning plan that includes:
-            
-            1. Core Concepts: List the fundamental concepts they need to understand
-            2. Learning Path: Break down the topic into sequential learning steps
-            3. Key Relationships: Identify important connections between concepts
-            4. Practical Applications: Real-world examples or applications
-            5. Common Challenges: Potential stumbling blocks and how to overcome them
-            
-            Format your response with clear headings and bullet points.""",
+            "content": """You are an expert teacher creating personalized learning plans.
+            If mathematical expressions are provided, incorporate them into the learning plan.
+            Structure the response with clear sections and subsections.""",
         },
         {
             "role": "user",
-            "content": f"""Topic: {prompt}
-
-Clarifying Questions and Answers:
-{qa_pairs}
-
-Please create a detailed learning plan based on these responses.""",
+            "content": f"Create a learning plan for '{prompt}'{latex_context}\n\nBased on these responses:\n"
+            + "\n".join(
+                [f"Q: {q}\nA: {a}" for q, a in zip(questions, answers)]
+            ),
         },
     ]
 
@@ -688,25 +653,72 @@ if st.session_state.current_page == "main":
     if st.session_state.stage == "initial":
         st.title("What would you like to learn about?")
 
+        # Text input first, using full width
         user_prompt = st.text_area(
-            label="Topic Input",  # Added label
-            label_visibility="collapsed",  # Hide the label
+            label="Topic Input",
+            label_visibility="collapsed",
             placeholder="Example: Machine Learning for Beginners",
             height=100,
         )
 
-        if (
-            st.button("Begin", type="primary") and user_prompt
-        ):  # Primary button for emphasis
-            # Store the original prompt
-            st.session_state.original_prompt = user_prompt
-            # Get customized questions based on the topic
-            questions = get_initial_questions(user_prompt)
-            st.session_state.questions = questions
-            st.session_state.current_question = (
-                0  # Track which question we're on
+        # Horizontal line for visual separation
+        st.markdown("---")
+
+        # Image uploader below, with help text
+        uploaded_image_data = st.file_uploader(
+            "Upload Math Image (Optional)",
+            type=["png", "jpg", "jpeg"],
+            help="Upload an image containing mathematical expressions to include in your learning plan",
+        )
+
+        # Process the image if uploaded
+        latex_code = None
+        if uploaded_image_data:
+            file_format = uploaded_image_data.type.split("/")[1].upper()
+            uploaded_image = Image.open(uploaded_image_data)
+            desired_resolution = (512, 512)
+            uploaded_image = uploaded_image.resize(desired_resolution)
+
+            # Display the uploaded image
+            st.image(
+                uploaded_image,
+                caption="Uploaded Math Expression",
+                use_container_width=True,
             )
-            st.session_state.answers = []  # Store answers
+
+            # Convert image to LaTeX
+            buffer = io.BytesIO()
+            uploaded_image.save(buffer, format=file_format)
+            buffer.seek(0)
+            encoded_image = base64.b64encode(buffer.read()).decode("utf-8")
+
+            from latex_project.latex_app import convert_image_to_latex_code
+
+            latex_code = convert_image_to_latex_code(
+                encoded_image, file_format.lower()
+            )
+
+            if latex_code:
+                st.text_area("Extracted LaTeX Code", latex_code, height=100)
+
+        # Begin button at the bottom
+        if st.button("Begin", type="primary") and user_prompt:
+            # Store the original prompt and LaTeX code
+            st.session_state.original_prompt = user_prompt
+            st.session_state.latex_code = latex_code
+
+            # Modify the prompt to include the LaTeX if present
+            combined_prompt = user_prompt
+            if latex_code:
+                combined_prompt += (
+                    f"\n\nIncluding this mathematical expression:\n{latex_code}"
+                )
+
+            # Get customized questions based on the combined topic
+            questions = get_initial_questions(combined_prompt)
+            st.session_state.questions = questions
+            st.session_state.current_question = 0
+            st.session_state.answers = []
             st.session_state.stage = "questioning"
             st.rerun()
 
