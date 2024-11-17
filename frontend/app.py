@@ -458,6 +458,7 @@ Practical Examples:
         physics=True,
         hierarchical=True,
         smooth=True,
+        interaction={"doubleClick": False},  # Disable double-click
     )
 
     agraph(nodes=ag_nodes, edges=ag_edges, config=config)
@@ -471,6 +472,12 @@ def handle_node_click(node_id, nodes, learning_plan):
     )
     if not clicked_node:
         return
+
+    # Create a container with an anchor
+    interaction_container = st.container()
+
+    # Add a header to make it clear where users landed
+    interaction_container.write(f"### 🎯 Selected Topic: {clicked_node.label}")
 
     # Create columns for the two options
     col1, col2 = st.columns(2)
@@ -601,15 +608,29 @@ elif st.session_state.stage == "display":
                 physics=True,
                 hierarchical=True,
                 smooth=True,
+                interaction={"doubleClick": False},  # Disable double-click
             )
 
             # Render the graph
             clicked_node = agraph(nodes=ag_nodes, edges=ag_edges, config=config)
 
             if clicked_node:
-                st.write(f"Selected node: {clicked_node}")  # Debug print
+                st.write("---")  # Add a visual separator
                 handle_node_click(
                     clicked_node, ag_nodes, st.session_state.learning_plan
+                )
+                # Auto-scroll to the interaction section
+                st.markdown(
+                    f'<div id="interaction-section"></div>',
+                    unsafe_allow_html=True,
+                )
+                st.markdown(
+                    """
+                    <script>
+                        document.getElementById('interaction-section').scrollIntoView();
+                    </script>
+                    """,
+                    unsafe_allow_html=True,
                 )
 
         except Exception as e:
