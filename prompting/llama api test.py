@@ -9,6 +9,7 @@ with open("hugging_face_api_key.key", "r") as file:
 # model = "Llama-3.2-8B"
 
 model= "Meta-Llama-3-8B-Instruct"
+# model= "Meta-Llama-3-1B"
 # model= "Meta-Llama-3-70B-Instruct"
 API_URL = f"https://api-inference.huggingface.co/models/meta-llama/{model}"
 

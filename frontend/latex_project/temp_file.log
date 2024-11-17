@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (MiKTeX 24.4) (preloaded format=pdflatex 2024.10.31)  17 NOV 2024 09:48
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (MiKTeX 24.4) (preloaded format=pdflatex 2024.10.31)  17 NOV 2024 15:07
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -456,9 +456,9 @@ Package rerunfilecheck Info: File `temp_file.out' has not changed.
 (rerunfilecheck)             Checksum: D41D8CD98F00B204E9800998ECF8427E;0.
  ) 
 Here is how much of TeX's memory you used:
- 12522 strings out of 473897
- 195584 string characters out of 5726461
- 598293 words of memory out of 5000000
+ 12524 strings out of 473897
+ 195608 string characters out of 5726461
+ 600293 words of memory out of 5000000
  35243 multiletter control sequences out of 15000+600000
  564712 words of font info for 63 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -470,14 +470,16 @@ ublic/amsfonts/cm/cmmi7.pfb><C:/Users/henry/AppData/Local/Programs/MiKTeX/fonts
 /type1/public/amsfonts/cm/cmr10.pfb><C:/Users/henry/AppData/Local/Programs/MiKT
 eX/fonts/type1/public/amsfonts/cm/cmr12.pfb><C:/Users/henry/AppData/Local/Progr
 ams/MiKTeX/fonts/type1/public/amsfonts/cm/cmr17.pfb><C:/Users/henry/AppData/Loc
-al/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr7.pfb><C:/Users/henry/AppD
-ata/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/h
-enry/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy7.pfb><C:
-/Users/henry/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/
-msbm10.pfb>
-Output written on temp_file.pdf (1 page, 98146 bytes).
+al/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr5.pfb><C:/Users/henry/AppD
+ata/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr7.pfb><C:/Users/hen
+ry/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/
+Users/henry/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy5.
+pfb><C:/Users/henry/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/c
+m/cmsy7.pfb><C:/Users/henry/AppData/Local/Programs/MiKTeX/fonts/type1/public/am
+sfonts/symbols/msbm10.pfb>
+Output written on temp_file.pdf (1 page, 117590 bytes).
 PDF statistics:
- 64 PDF objects out of 1000 (max. 8388607)
- 5 named destinations out of 1000 (max. 500000)
+ 78 PDF objects out of 1000 (max. 8388607)
+ 7 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 
