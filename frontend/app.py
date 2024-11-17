@@ -153,7 +153,6 @@ def get_initial_questions(prompt):
         return questions
     except Exception as e:
         st.error(f"Error generating questions: {str(e)}")
-        # Fallback to generic questions if generation fails
         return [
             {
                 "question": f"What's your current knowledge level in {prompt}?",
@@ -190,30 +189,47 @@ def analyze_responses(prompt, questions, answers):
     if hasattr(st.session_state, "latex_code") and st.session_state.latex_code:
         latex_context = f"\nThe learning plan should incorporate this mathematical expression: {st.session_state.latex_code}"
 
-    # Get a relevant image for visualization regardless of input type
-    image_url, photographer = get_unsplash_image(prompt)
-    if image_url:
-        st.image(image_url, use_container_width=True)
-        st.caption(f"📸 Photo by {photographer} on Unsplash")
+    # Create a formatted string of Q&A pairs
+    qa_pairs = "\n".join(
+        [f"Q: {q}\nA: {a}" for q, a in zip(questions, answers)]
+    )
 
     messages = [
         {
             "role": "system",
-            "content": """You are an expert teacher creating personalized learning plans.
-            If mathematical expressions are provided, incorporate them into the learning plan.
-            Structure the response with clear sections and subsections.""",
+            "content": """You are an expert teacher who creates detailed learning plans.
+            Based on the user's topic, their responses to the clarifying questions, and any mathematical context provided,
+            create a structured learning plan that includes:
+            
+            1. Core Concepts: List the fundamental concepts they need to understand
+            2. Learning Path: Break down the topic into sequential learning steps
+            3. Key Relationships: Identify important connections between concepts
+            4. Practical Applications: Real-world examples or applications
+            5. Common Challenges: Potential stumbling blocks and how to overcome them
+            
+            If mathematical expressions are provided, incorporate them into the learning plan
+            and explain their significance and application.
+            
+            Format your response with clear headings and bullet points.
+            Each section should build upon the previous one in a logical sequence.""",
         },
         {
             "role": "user",
-            "content": f"Create a learning plan for '{prompt}'{latex_context}\n\nBased on these responses:\n"
-            + "\n".join(
-                [f"Q: {q}\nA: {a}" for q, a in zip(questions, answers)]
-            ),
+            "content": f"""Topic: {prompt}
+
+Clarifying Questions and Answers:
+{qa_pairs}
+{latex_context}
+
+Please create a detailed learning plan based on these responses.""",
         },
     ]
 
     response = client.chat.completions.create(
-        model="gpt-4", messages=messages, temperature=0.7, max_tokens=1000
+        model="gpt-4",
+        messages=messages,
+        temperature=0.7,
+        max_tokens=1500,  # Increased for more detailed responses
     )
 
     return response.choices[0].message.content.strip()
