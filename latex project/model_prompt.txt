@@ -1,0 +1,24 @@
+Look at the inputted image containing maths notation written on a whiteboard.
+Task 1: Type out the maths (all equations ect) from the board
+
+
+Task 2: Write simple latex code for this maths formatted. 
+The latex code will be run within a template file which will complete relevant imports. 
+Your code include these lines with all the maths content between them "\begin{align}"  and "\end{align}" lines. 
+Give the content surrounded by these start and end tags with nothing else 
+Add in any of the text on the white board. 
+You should add in small amounts of text between the formulas explaining the line briefly (what it is doing, what was the change from the previous line. 
+Is it using a standard method / formula you can name)?
+Use \quad &\text as shown in the example below
+
+Example of expected output for task 2 (when provided image of the same maths):
+
+\begin{align}
+	O = x^2 + bx + c \quad &\text{(Define the quadratic equation)} \\ 
+	O = \left( x + \frac{b}{2} \right)^2 - \left( \frac{b}{2} \right)^2 + c \quad &\text{(Completing the square)} \\ 
+	\frac{4c - b^2}{4} = -\left( x + \frac{b}{2} \right)^2 \quad &\text{(Rearranging terms)} \\ 
+	x = \frac{b}{2} \pm \sqrt{\frac{b^2 - 4c}{4}} \quad &\text{(Solving for } x \text{)} \\ 
+	x = -\frac{b}{2} \pm \frac{\sqrt{4c - b^2}}{2} \quad &\text{(Simplifying the square root)}
+\end{align}
+
+Respond only with the raw latex code including "\begin{align}" maths in latex form between and then including "\end{align}"

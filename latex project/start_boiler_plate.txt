@@ -13,15 +13,3 @@
 \title{Maths Notes \today}
 \begin{document}
 \maketitle
-\begin{align}
-	\begin{bmatrix}
-		a & b \\
-		c & d
-	\end{bmatrix}^T = \frac{1}{ad - bc} \begin{bmatrix}
-		d & -b \\
-		-c & a
-	\end{bmatrix} \quad &\text{(Transpose of a matrix and its inverse)} \\ 
-	\forall M \in M_2(\mathbb{R}), \ |M| \neq 0 \quad &\text{(Condition for invertibility)} \\ 
-	\exists M \in M_2(\mathbb{R}) : M^{-1} = I_2 \quad &\text{(Existence of an inverse matrix)}
-\end{align}
-\end{document}

@@ -1,0 +1,37 @@
+\documentclass{article}
+\usepackage{amsmath}  % Improves typographic quality of mathematical output.
+\usepackage{amsthm} %
+\usepackage{amssymb} % Extended set of mathematical symbols.
+\usepackage{amsfonts} % For mathematical fonts.
+\usepackage{graphicx} % For including graphics (via \includegraphics).
+\usepackage[english]{babel}
+\usepackage{enumerate} % The change the numbering in enumerate
+\usepackage{listings} % Include the listings environment
+\usepackage{subfigure}% Several figures in one figure
+\usepackage[pagebackref]{hyperref} % Automatic inclusion of hyperlinks with back references.
+
+\title{Maths Notes \today}\begin{document}\maketitle
+\[
+\begin{bmatrix}
+a & b \\
+c & d
+\end{bmatrix}
+=
+\frac{1}{ad - bc}
+\begin{bmatrix}
+d & -b \\
+-c & a
+\end{bmatrix}
+\]
+This equation shows the formula for the inverse of a 2x2 matrix. The determinant \(ad - bc\) must be non-zero for the inverse to exist.
+
+\[
+\Rightarrow \forall M \in M_2(\mathbb{R}) \quad |M| \neq 0 \Rightarrow
+\]
+This line states that for all matrices \(M\) in \(M_2(\mathbb{R})\), if the determinant is non-zero, then:
+
+\[
+E_{M^{-1}} = E_{M_2(\mathbb{R})} : \quad M \cdot M^{-1} = M^{-1} \cdot M = I_2
+\]
+This indicates that the inverse of matrix \(M\) exists and that multiplying \(M\) by its inverse yields the identity matrix \(I_2\).
+\end{document}
