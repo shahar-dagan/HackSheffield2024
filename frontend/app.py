@@ -5,8 +5,8 @@ import os
 import json
 from datetime import datetime
 import uuid
-import streamlit.components.v1 as components
-from streamlit_elements import elements, dashboard, mui, html, sync
+from streamlit_elements import elements, dashboard, mui, html, sync, nivo
+from streamlit_agraph import agraph, Node, Edge, Config
 
 # Load environment variables
 load_dotenv()
@@ -120,68 +120,77 @@ Please create a detailed learning plan based on these responses.""",
 
 
 def convert_to_reactflow_data(learning_plan):
-    """Convert learning plan to React Flow format"""
+    """Convert learning plan to graph format with improved visualization"""
     nodes = []
     edges = []
-    y_position = 0
-    x_position = 400
+    node_id = 0
 
-    # Split learning plan into sections
+    # Split the learning plan into sections
     sections = learning_plan.split("\n\n")
 
-    # Create main node
+    # Create main topic node
+    main_title = sections[0].strip()
     nodes.append(
         {
-            "id": "main",
-            "type": "custom",
-            "position": {"x": x_position, "y": y_position},
-            "data": {"title": "Main Topic", "content": sections[0]},
+            "id": f"node_{node_id}",
+            "data": {
+                "title": main_title,
+                "type": "main",  # Add type for different styling
+                "content": main_title,
+            },
         }
     )
-
-    y_position += 150
+    main_node_id = f"node_{node_id}"
+    node_id += 1
 
     # Process each section
-    for i, section in enumerate(sections[1:], 1):
-        if section.strip():
-            # Split section into title and content
-            if ":" in section:
-                title, content = section.split(":", 1)
-            else:
-                title = f"Topic {i}"
-                content = section
+    for section in sections[1:]:
+        if ":" in section:
+            # Get section title and content
+            title, content = section.split(":", 1)
+            title = title.strip()
 
-            # Create node
-            node_id = f"node-{i}"
-            x_offset = (i % 3 - 1) * 300
-
+            # Create section node
+            section_node_id = f"node_{node_id}"
             nodes.append(
                 {
-                    "id": node_id,
-                    "type": "custom",
-                    "position": {"x": x_position + x_offset, "y": y_position},
+                    "id": section_node_id,
                     "data": {
-                        "title": title.strip(),
+                        "title": title,
+                        "type": "section",
                         "content": content.strip(),
                     },
                 }
             )
 
-            # Create edge
-            edges.append(
-                {
-                    "id": f"edge-{i}",
-                    "source": "main",
-                    "target": node_id,
-                    "type": "smoothstep",
-                    "animated": True,
-                    "style": {"stroke": "#888"},
-                }
-            )
+            # Connect to main node
+            edges.append({"source": main_node_id, "target": section_node_id})
+            node_id += 1
 
-            # Adjust y_position for next row if needed
-            if i % 3 == 0:
-                y_position += 200
+            # Process bullet points in content
+            bullet_points = [
+                point.strip()
+                for point in content.split("\n")
+                if point.strip().startswith("-")
+            ]
+            for point in bullet_points:
+                point_node_id = f"node_{node_id}"
+                nodes.append(
+                    {
+                        "id": point_node_id,
+                        "data": {
+                            "title": point.lstrip("- "),
+                            "type": "detail",  # Add type for different styling
+                            "content": point.lstrip("- "),
+                        },
+                    }
+                )
+
+                # Connect to section node
+                edges.append(
+                    {"source": section_node_id, "target": point_node_id}
+                )
+                node_id += 1
 
     return nodes, edges
 
@@ -250,6 +259,38 @@ export default LearningFlow;
 """
 
 
+# Add these mock data functions at the top after imports
+
+
+def get_mock_questions():
+    """Return mock clarifying questions"""
+    return [
+        "What is your current level of understanding in this topic?",
+        "What specific aspects are you most interested in?",
+        "How do you plan to apply this knowledge?",
+    ]
+
+
+def get_mock_learning_plan():
+    """Return a structured mock learning plan"""
+    return """Machine Learning Fundamentals
+
+Core Concepts:
+Understanding the basics of machine learning, including supervised and unsupervised learning approaches. This forms the foundation of all ML applications.
+
+Data Preprocessing:
+Learn how to prepare and clean data for machine learning models. This includes handling missing values, feature scaling, and normalization techniques.
+
+Model Selection:
+Explore different types of machine learning models and when to use them. From simple linear regression to complex neural networks.
+
+Evaluation Metrics:
+Understanding how to measure model performance using various metrics like accuracy, precision, and recall.
+
+Practical Implementation:
+Hands-on experience with popular ML libraries and frameworks. Building and deploying real machine learning models."""
+
+
 # Start with the interactive learning journey
 st.title("Interactive Learning Diagram Generator")
 
@@ -263,6 +304,11 @@ if "answers" not in st.session_state:
     st.session_state.answers = []
 
 if st.session_state.stage == "initial":
+    # Add a toggle for testing mode
+    st.session_state.testing_mode = st.checkbox(
+        "Enable Testing Mode", value=True
+    )
+
     user_prompt = st.text_area(
         "What topic would you like to learn about?",
         placeholder="Example: Neural Networks in Deep Learning",
@@ -271,7 +317,12 @@ if st.session_state.stage == "initial":
 
     if st.button("Start Learning Journey") and user_prompt:
         st.session_state.original_prompt = user_prompt
-        st.session_state.questions = get_initial_questions(user_prompt)
+        # Use mock questions if in testing mode
+        st.session_state.questions = (
+            get_mock_questions()
+            if st.session_state.testing_mode
+            else get_initial_questions(user_prompt)
+        )
         st.session_state.stage = "questioning"
         st.rerun()
 
@@ -279,27 +330,32 @@ elif st.session_state.stage == "questioning":
     st.write("### Let's understand your needs better")
     st.write(f"Topic: {st.session_state.original_prompt}")
 
+    # Add quick fill button for testing
+    if st.session_state.testing_mode and st.button("Fill with Mock Answers"):
+        st.session_state.learning_plan = get_mock_learning_plan()
+        st.session_state.stage = "display"
+        st.rerun()
+
     answers = []
     for q in st.session_state.questions:
         answer = st.text_input(q)
         answers.append(answer)
 
     if st.button("Generate Learning Plan") and all(answers):
-        # Generate learning plan
-        learning_plan = analyze_responses(
-            st.session_state.original_prompt,
-            st.session_state.questions,
-            answers,
+        # Use mock data if in testing mode
+        learning_plan = (
+            get_mock_learning_plan()
+            if st.session_state.testing_mode
+            else analyze_responses(
+                st.session_state.original_prompt,
+                st.session_state.questions,
+                answers,
+            )
         )
 
-        # Save to session state
         st.session_state.learning_plan = learning_plan
         st.session_state.last_prompt = st.session_state.original_prompt
-
-        # Save to history
         save_to_history(st.session_state.original_prompt, learning_plan)
-
-        # Move to display stage
         st.session_state.stage = "display"
         st.rerun()
 
@@ -309,57 +365,97 @@ elif st.session_state.stage == "display":
         st.session_state.stage = "initial"
         st.rerun()
 
-    st.title(st.session_state.original_prompt)
+    with st.container():
+        st.title(st.session_state.original_prompt)
 
-    with st.expander("📋 Learning Plan", expanded=True):
-        st.write(st.session_state.learning_plan)
+        with st.expander("📋 Learning Plan", expanded=True):
+            st.write(st.session_state.learning_plan)
 
-    try:
-        # Convert learning plan to React Flow format
-        flow_data = convert_to_reactflow_data(st.session_state.learning_plan)
-
-        # Create dashboard layout
-        with elements("learning_diagram"):
-            # Add required CSS
-            elements.html(
-                """
-                <link href="https://unpkg.com/reactflow@11.10.1/dist/style.css" rel="stylesheet" />
-                <style>
-                    .react-flow__node {
-                        cursor: grab;
-                    }
-                    .react-flow__node:active {
-                        cursor: grabbing;
-                    }
-                </style>
-            """
+        try:
+            nodes, edges = convert_to_reactflow_data(
+                st.session_state.learning_plan
             )
 
-            # Create layout
-            layout = [dashboard.Item("diagram", 0, 0, 12, 6)]
+            # Convert to agraph format
+            ag_nodes = [
+                Node(
+                    id=node["id"],
+                    label=node["data"]["title"],
+                    size=get_node_size(
+                        node["data"]["type"]
+                    ),  # Function to determine size based on type
+                    color=get_node_color(
+                        node["data"]["type"]
+                    ),  # Function to determine color based on type
+                    shadow=True,
+                    font=get_node_font(
+                        node["data"]["type"]
+                    ),  # Function to determine font based on type
+                    borderWidth=2,
+                    borderColor=get_border_color(
+                        node["data"]["type"]
+                    ),  # Function to determine border color
+                    shape=get_node_shape(
+                        node["data"]["type"]
+                    ),  # Function to determine shape based on type
+                )
+                for node in nodes
+            ]
 
-            with dashboard.Grid(layout):
-                with mui.Paper(
-                    elevation=3,
-                    sx={
-                        "height": "600px",
-                        "overflow": "hidden",
-                        "borderRadius": 2,
-                        "p": 2,
-                        "bgcolor": "#f5f5f5",
+            ag_edges = [
+                Edge(
+                    source=edge["source"],
+                    target=edge["target"],
+                    # Add arrow
+                    arrow=True,
+                    # Style the edge
+                    color="#666666",
+                    width=2,
+                )
+                for edge in edges
+            ]
+
+            # Configure the graph
+            config = Config(
+                width="100%",
+                height=700,  # Increased height
+                directed=True,
+                physics=True,
+                hierarchical=True,  # Enable hierarchical layout
+                smooth=True,
+                physics_props={
+                    "hierarchicalRepulsion": {
+                        "centralGravity": 0.0,
+                        "springLength": 100,
+                        "springConstant": 0.01,
+                        "nodeDistance": 120,
+                        "damping": 0.09,
                     },
-                ):
-                    # Mount the React Flow component
-                    elements.declare_component(
-                        "LearningFlow",
-                        create_flow_component(),
-                        props={"data": flow_data},
-                    )
+                    "solver": "hierarchicalRepulsion",
+                },
+                node_props={"scaling": {"min": 20, "max": 35}},
+                edge_props={
+                    "arrowStrikethrough": False,
+                    "smooth": {"type": "cubicBezier", "roundness": 0.5},
+                    "length": 250,
+                },
+                # Add hierarchical layout configuration
+                hierarchical_props={
+                    "enabled": True,
+                    "levelSeparation": 150,
+                    "nodeSpacing": 200,
+                    "treeSpacing": 200,
+                    "direction": "UD",  # Up to Down layout
+                },
+            )
 
-    except Exception as e:
-        st.error(f"Error generating diagram: {str(e)}")
-        st.write("### Learning Plan Overview")
-        st.write(st.session_state.learning_plan)
+            # Render the graph
+            agraph(nodes=ag_nodes, edges=ag_edges, config=config)
+
+        except Exception as e:
+            st.error(f"Error generating diagram: {str(e)}")
+            st.write("### Learning Plan Overview")
+            st.write(st.session_state.learning_plan)
 
 # Add helpful tips
 with st.expander("💡 Tips for better results"):
@@ -395,3 +491,34 @@ with st.sidebar:
                 st.session_state.original_prompt = entry["prompt"]
                 st.session_state.stage = "display"
                 st.rerun()
+
+
+# Helper functions for node styling
+def get_node_size(node_type):
+    return {"main": 35, "section": 30, "detail": 25}.get(node_type, 25)
+
+
+def get_node_color(node_type):
+    return {"main": "#61CDB8", "section": "#F47560", "detail": "#FED766"}.get(
+        node_type, "#CCCCCC"
+    )
+
+
+def get_node_font(node_type):
+    return {
+        "main": {"size": 16, "color": "black", "bold": True},
+        "section": {"size": 14, "color": "black", "bold": True},
+        "detail": {"size": 12, "color": "black"},
+    }.get(node_type, {"size": 12, "color": "black"})
+
+
+def get_border_color(node_type):
+    return {"main": "#45B69C", "section": "#D65D4A", "detail": "#E6C25D"}.get(
+        node_type, "#999999"
+    )
+
+
+def get_node_shape(node_type):
+    return {"main": "hexagon", "section": "dot", "detail": "diamond"}.get(
+        node_type, "dot"
+    )
