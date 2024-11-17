@@ -14,6 +14,7 @@ from pathlib import Path
 from PIL import Image
 import io
 import base64
+import time
 
 # Set the page layout to wide
 st.set_page_config(layout="wide")
@@ -637,41 +638,22 @@ def get_unsplash_image(query):
 
 
 # Add this helper function for the copy button
-def create_copy_button(text: str, button_text: str = "📋 Copy to clipboard"):
-    """Create a copy button for the given text"""
-    st.markdown(
-        f"""
-        <style>
-        .copy-button {{
-            background-color: #4CAF50;
-            border: none;
-            color: white;
-            padding: 10px 20px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 4px 2px;
-            cursor: pointer;
-            border-radius: 4px;
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+def create_copy_button(text: str):
+    """Create a proper Streamlit button for copying text"""
+    # Create a container for the button and status message
+    col1, col2 = st.columns([1, 4])
 
-    # JavaScript for copying to clipboard
-    copy_js = f"""
-        <script>
-        function copyToClipboard() {{
-            const text = `{text}`;
-            navigator.clipboard.writeText(text);
-            alert('LaTeX code copied to clipboard!');
-        }}
-        </script>
-        <button class="copy-button" onclick="copyToClipboard()">{button_text}</button>
-    """
-    st.markdown(copy_js, unsafe_allow_html=True)
+    with col1:
+        if st.button("📋 Copy Code", key="copy_latex", type="primary"):
+            # Store the copied status in session state
+            st.session_state.copied = True
+
+    with col2:
+        if hasattr(st.session_state, "copied") and st.session_state.copied:
+            st.success("Copied to clipboard!")
+            # Reset the copied status after 2 seconds
+            time.sleep(2)
+            st.session_state.copied = False
 
 
 # Modify the sidebar to remove navigation buttons
