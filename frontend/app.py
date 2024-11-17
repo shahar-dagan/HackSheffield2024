@@ -589,21 +589,57 @@ def handle_node_click(node_id, nodes, learning_plan):
         return
 
     # Create a container with an anchor
-    interaction_container = st.container()
-
-    # Add a header to make it clear where users landed
-    interaction_container.write(f"### 🎯 Selected Topic: {clicked_node.label}")
+    st.write(f"### 🎯 Selected Topic: {clicked_node.label}")
 
     # Create columns for the two options
     col1, col2 = st.columns(2)
 
     with col1:
-        if st.button("🔍 Expand this topic"):
+        if st.button("🔍 Expand this topic", key=f"expand_{node_id}"):
             generate_subtopic_diagram(clicked_node.label, learning_plan)
 
     with col2:
-        if st.button("❓ Ask a follow-up question"):
-            ask_followup_question(clicked_node.label)
+        if st.button("❓ Ask a question", key=f"ask_{node_id}"):
+            st.session_state.show_question_input = True
+            st.session_state.current_topic = clicked_node.label
+            st.rerun()
+
+    # Show question input if button was clicked
+    if (
+        hasattr(st.session_state, "show_question_input")
+        and hasattr(st.session_state, "current_topic")
+        and st.session_state.show_question_input
+        and st.session_state.current_topic == clicked_node.label
+    ):
+
+        question = st.text_input(
+            f"What would you like to know about {clicked_node.label}?",
+            key=f"question_{node_id}",
+        )
+
+        if question and st.button("Get Answer", key=f"submit_{node_id}"):
+            messages = [
+                {
+                    "role": "system",
+                    "content": """You are an expert teacher. Provide a clear, detailed answer
+                    to the user's question about a specific topic. Include examples where appropriate.""",
+                },
+                {
+                    "role": "user",
+                    "content": f"Topic: {clicked_node.label}\nQuestion: {question}",
+                },
+            ]
+
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=messages,
+                temperature=0.7,
+                max_tokens=500,
+            )
+            answer = response.choices[0].message.content.strip()
+
+            st.write("### Answer")
+            st.markdown(answer)
 
 
 def wrap_text(text, max_chars=30):
