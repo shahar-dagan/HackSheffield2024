@@ -11,6 +11,9 @@ import requests
 from urllib.parse import quote
 import sys
 from pathlib import Path
+from PIL import Image
+import io
+import base64
 
 # Set the page layout to wide
 st.set_page_config(layout="wide")
@@ -103,12 +106,19 @@ def save_to_history(prompt, learning_plan):
 
 def get_initial_questions(prompt):
     """Generate relevant questions and their multiple choice options"""
+    # Check if there's LaTeX code in the session state
+    latex_context = ""
+    if hasattr(st.session_state, "latex_code") and st.session_state.latex_code:
+        latex_context = f"\nThe topic includes this mathematical expression: {st.session_state.latex_code}"
+
     messages = [
         {
             "role": "system",
             "content": """You are an expert teacher who helps understand learners' needs.
             Generate 3 relevant questions to understand what aspects of the topic the user wants to learn.
             For each question, provide 3-4 multiple choice options that are SPECIFIC to the topic.
+            
+            If mathematical expressions are provided, include questions about mathematical understanding and application.
             
             Format your response as a JSON array of question-option pairs.
             Example for "Machine Learning":
@@ -121,14 +131,6 @@ def get_initial_questions(prompt):
                         "📊 Data Preprocessing & Feature Engineering",
                         "🔄 Reinforcement Learning"
                     ]
-                },
-                {
-                    "question": "Which ML application area is most relevant to you?",
-                    "options": [
-                        "📱 Mobile & Edge Applications",
-                        "💻 Enterprise Software",
-                        "🔬 Research & Academia"
-                    ]
                 }
             ]
             
@@ -138,7 +140,7 @@ def get_initial_questions(prompt):
         },
         {
             "role": "user",
-            "content": f"Create topic-specific questions and options for someone wanting to learn about: {prompt}",
+            "content": f"Create topic-specific questions and options for someone wanting to learn about: {prompt}{latex_context}",
         },
     ]
 
@@ -181,35 +183,31 @@ def get_initial_questions(prompt):
 
 
 def analyze_responses(prompt, questions, answers):
-    """Analyze user's responses and create a detailed learning plan"""
-    # Create a formatted string of Q&A pairs
-    qa_pairs = "\n".join(
-        [f"Q: {q}\nA: {a}" for q, a in zip(questions, answers)]
-    )
+    """Generate a personalized learning plan based on user responses"""
+    # Include the LaTeX code in the analysis if present
+    latex_context = ""
+    if hasattr(st.session_state, "latex_code") and st.session_state.latex_code:
+        latex_context = f"\nThe learning plan should incorporate this mathematical expression: {st.session_state.latex_code}"
+
+    # Get a relevant image for visualization regardless of input type
+    image_url, photographer = get_unsplash_image(prompt)
+    if image_url:
+        st.image(image_url, use_container_width=True)
+        st.caption(f"📸 Photo by {photographer} on Unsplash")
 
     messages = [
         {
             "role": "system",
-            "content": """You are an expert teacher who creates detailed learning plans.
-            Based on the user's topic and their responses to the clarifying questions,
-            create a structured learning plan that includes:
-            
-            1. Core Concepts: List the fundamental concepts they need to understand
-            2. Learning Path: Break down the topic into sequential learning steps
-            3. Key Relationships: Identify important connections between concepts
-            4. Practical Applications: Real-world examples or applications
-            5. Common Challenges: Potential stumbling blocks and how to overcome them
-            
-            Format your response with clear headings and bullet points.""",
+            "content": """You are an expert teacher creating personalized learning plans.
+            If mathematical expressions are provided, incorporate them into the learning plan.
+            Structure the response with clear sections and subsections.""",
         },
         {
             "role": "user",
-            "content": f"""Topic: {prompt}
-
-Clarifying Questions and Answers:
-{qa_pairs}
-
-Please create a detailed learning plan based on these responses.""",
+            "content": f"Create a learning plan for '{prompt}'{latex_context}\n\nBased on these responses:\n"
+            + "\n".join(
+                [f"Q: {q}\nA: {a}" for q, a in zip(questions, answers)]
+            ),
         },
     ]
 
@@ -638,20 +636,8 @@ def get_unsplash_image(query):
         return None, None
 
 
-if "current_page" not in st.session_state:
-    st.session_state.current_page = "main"
-
-# Add this before the main content
+# Modify the sidebar to remove navigation buttons
 with st.sidebar:
-    st.write("### Navigation")
-    if st.button("🏠 Main Learning Path"):
-        st.session_state.current_page = "main"
-        st.rerun()
-    if st.button("📝 Math to LaTeX Converter"):
-        st.session_state.current_page = "latex"
-        st.rerun()
-
-    st.write("---")  # Separator
     st.write("### Previous Topics")
     history = load_history()
 
@@ -674,229 +660,226 @@ with st.sidebar:
                 st.session_state.stage = "display"
                 st.rerun()
 
-# Modify your main content to use the current_page state
-if st.session_state.current_page == "main":
-    if "stage" not in st.session_state:
-        st.session_state.stage = "initial"
+# Remove references to current_page and directly show main content
+if "stage" not in st.session_state:
+    st.session_state.stage = "initial"
 
-    if "questions" not in st.session_state:
-        st.session_state.questions = None
+if "questions" not in st.session_state:
+    st.session_state.questions = None
 
-    if "answers" not in st.session_state:
+if "answers" not in st.session_state:
+    st.session_state.answers = []
+
+if st.session_state.stage == "initial":
+    st.title("What would you like to learn about?")
+
+    # Text input first
+    user_prompt = st.text_area(
+        label="Topic Input",
+        label_visibility="collapsed",
+        placeholder="Example: Machine Learning for Beginners",
+        height=100,
+    )
+
+    # Optional LaTeX input
+    uploaded_image_data = st.file_uploader(
+        "Upload Math Image (Optional)",
+        type=["png", "jpg", "jpeg"],
+        help="Upload an image containing mathematical expressions to include in your learning plan",
+    )
+
+    # Process LaTeX if uploaded
+    if uploaded_image_data:
+        # LaTeX processing code...
+        if latex_code:
+            st.session_state.latex_code = latex_code
+
+    # Begin button
+    if st.button("Begin", type="primary") and user_prompt:
+        st.session_state.original_prompt = user_prompt
+
+        # Get and display image immediately after prompt is entered
+        image_url, photographer = get_unsplash_image(user_prompt)
+        if image_url:
+            st.image(image_url, use_container_width=True)
+            st.caption(f"📸 Photo by {photographer} on Unsplash")
+
+        # Continue with question generation
+        questions = get_initial_questions(user_prompt)
+        st.session_state.questions = questions
+        st.session_state.current_question = 0
         st.session_state.answers = []
+        st.session_state.stage = "questioning"
+        st.rerun()
 
-    if st.session_state.stage == "initial":
-        st.title("What would you like to learn about?")
+elif st.session_state.stage == "questioning":
+    st.title(f"Let's learn about: {st.session_state.original_prompt}")
 
-        user_prompt = st.text_area(
-            label="Topic Input",  # Added label
-            label_visibility="collapsed",  # Hide the label
-            placeholder="Example: Machine Learning for Beginners",
-            height=100,
-        )
+    # Get and display image right after the title and BEFORE the questions
+    image_url, photographer = get_unsplash_image(
+        st.session_state.original_prompt
+    )
+    if image_url:
+        st.image(image_url, use_container_width=True)
+        st.caption(f"📸 Photo by {photographer} on Unsplash")
 
-        if (
-            st.button("Begin", type="primary") and user_prompt
-        ):  # Primary button for emphasis
-            # Store the original prompt
-            st.session_state.original_prompt = user_prompt
-            # Get customized questions based on the topic
-            questions = get_initial_questions(user_prompt)
-            st.session_state.questions = questions
-            st.session_state.current_question = (
-                0  # Track which question we're on
-            )
-            st.session_state.answers = []  # Store answers
-            st.session_state.stage = "questioning"
-            st.rerun()
+    # If there's LaTeX code, display it after the image
+    if hasattr(st.session_state, "latex_code") and st.session_state.latex_code:
+        st.markdown("### 📐 Including this mathematical expression:")
+        st.code(st.session_state.latex_code, language="latex")
 
-    elif st.session_state.stage == "questioning":
-        st.title(f"Let's learn about: {st.session_state.original_prompt}")
+    # Get current question
+    current_q = st.session_state.current_question
+    question = st.session_state.questions[current_q]
 
-        # Add image right after the title
+    # Display current question
+    st.write(f"### {question['question']}")
+
+    # Create buttons for each option
+    cols = st.columns(len(question["options"]))
+    for idx, (col, option) in enumerate(zip(cols, question["options"])):
+        with col:
+            if st.button(
+                option,
+                key=f"q{current_q}_opt{idx}",
+                use_container_width=True,
+            ):
+                st.session_state.answers.append(option)
+
+                # Move to next question or generate plan
+                if current_q + 1 < len(st.session_state.questions):
+                    st.session_state.current_question += 1
+                else:
+                    # Generate learning plan
+                    learning_plan = analyze_responses(
+                        st.session_state.original_prompt,
+                        [q["question"] for q in st.session_state.questions],
+                        st.session_state.answers,
+                    )
+
+                    # Save to history before updating session state
+                    save_to_history(
+                        st.session_state.original_prompt, learning_plan
+                    )
+
+                    st.session_state.learning_plan = learning_plan
+                    st.session_state.stage = "display"
+                st.rerun()
+
+    # Show progress
+    progress = (current_q + 1) / len(st.session_state.questions)
+    st.progress(progress)
+
+elif st.session_state.stage == "display":
+    with st.container():
+        st.title(st.session_state.original_prompt)
+
+        # Get and display relevant image
         image_url, photographer = get_unsplash_image(
             st.session_state.original_prompt
         )
         if image_url:
-            st.image(
-                image=image_url,
-                use_container_width=True,
-                caption=f"📸 Photo by {photographer} on Unsplash",
-            )
+            st.image(image_url, use_container_width=True)
+            st.caption(f"📸 Photo by {photographer} on Unsplash")
 
-        current_q = st.session_state.current_question
-        question = st.session_state.questions[current_q]
+        # Improve text formatting with a max-width container and better spacing
+        st.markdown(
+            """
+            <style>
+            .learning-plan-text {
+                max-width: 800px;
+                line-height: 1.6;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            .learning-plan-text p {
+                margin-bottom: 1em;
+            }
+            .learning-plan-text ul {
+                margin-left: 20px;
+                margin-bottom: 1em;
+            }
+            </style>
+        """,
+            unsafe_allow_html=True,
+        )
 
-        # Display current question
-        st.write(f"### {question['question']}")
-
-        # Create buttons for each option
-        cols = st.columns(len(question["options"]))
-        for idx, (col, option) in enumerate(zip(cols, question["options"])):
-            with col:
-                if st.button(
-                    option,
-                    key=f"q{current_q}_opt{idx}",
-                    use_container_width=True,
-                ):
-                    st.session_state.answers.append(option)
-
-                    # Move to next question or generate plan
-                    if current_q + 1 < len(st.session_state.questions):
-                        st.session_state.current_question += 1
-                    else:
-                        # Generate learning plan
-                        learning_plan = analyze_responses(
-                            st.session_state.original_prompt,
-                            [q["question"] for q in st.session_state.questions],
-                            st.session_state.answers,
-                        )
-
-                        # Save to history before updating session state
-                        save_to_history(
-                            st.session_state.original_prompt, learning_plan
-                        )
-
-                        st.session_state.learning_plan = learning_plan
-                        st.session_state.stage = "display"
-                    st.rerun()
-
-        # Show progress
-        progress = (current_q + 1) / len(st.session_state.questions)
-        st.progress(progress)
-
-    elif st.session_state.stage == "display":
-        with st.container():
-            st.title(st.session_state.original_prompt)
-
-            # Get and display relevant image
-            image_url, photographer = get_unsplash_image(
-                st.session_state.original_prompt
-            )
-            if image_url:
-                st.image(image_url, use_column_width=True)
-                st.caption(f"📸 Photo by {photographer} on Unsplash")
-
-            # Improve text formatting with a max-width container and better spacing
+        with st.expander("📋 Learning Plan", expanded=True):
             st.markdown(
-                """
-                <style>
-                .learning-plan-text {
-                    max-width: 800px;
-                    line-height: 1.6;
-                    margin: 0 auto;
-                    padding: 20px;
-                }
-                .learning-plan-text p {
-                    margin-bottom: 1em;
-                }
-                .learning-plan-text ul {
-                    margin-left: 20px;
-                    margin-bottom: 1em;
-                }
-                </style>
-            """,
+                f'<div class="learning-plan-text">{st.session_state.learning_plan}</div>',
                 unsafe_allow_html=True,
             )
 
-            with st.expander("📋 Learning Plan", expanded=True):
-                st.markdown(
-                    f'<div class="learning-plan-text">{st.session_state.learning_plan}</div>',
-                    unsafe_allow_html=True,
+        try:
+            nodes, edges = convert_to_graph_data(st.session_state.learning_plan)
+
+            # Convert to agraph format
+            ag_nodes = [
+                Node(
+                    id=node["id"],
+                    label=wrap_text(node["data"]["title"]),
+                    size=get_node_size(node["data"]["type"]),
+                    color=get_node_color(node["data"]["type"]),
+                    shadow=True,
+                    font=get_node_font(node["data"]["type"]),
+                    borderWidth=2,
+                    borderColor=get_border_color(node["data"]["type"]),
+                    shape=get_node_shape(node["data"]["type"]),
                 )
+                for node in nodes
+            ]
 
-            try:
-                nodes, edges = convert_to_graph_data(
-                    st.session_state.learning_plan
+            ag_edges = [
+                Edge(
+                    source=edge["source"],
+                    target=edge["target"],
+                    arrow=True,
+                    color="#666666",
+                    width=2,
                 )
+                for edge in edges
+            ]
 
-                # Convert to agraph format
-                ag_nodes = [
-                    Node(
-                        id=node["id"],
-                        label=wrap_text(node["data"]["title"]),
-                        size=get_node_size(node["data"]["type"]),
-                        color=get_node_color(node["data"]["type"]),
-                        shadow=True,
-                        font=get_node_font(node["data"]["type"]),
-                        borderWidth=2,
-                        borderColor=get_border_color(node["data"]["type"]),
-                        shape=get_node_shape(node["data"]["type"]),
-                    )
-                    for node in nodes
-                ]
-
-                ag_edges = [
-                    Edge(
-                        source=edge["source"],
-                        target=edge["target"],
-                        arrow=True,
-                        color="#666666",
-                        width=2,
-                    )
-                    for edge in edges
-                ]
-
-                config = Config(
-                    width=2600,
-                    height=1400,
-                    directed=True,
-                    physics=False,
-                    hierarchical={
-                        "enabled": True,
-                        "levelSeparation": 600,
-                        "nodeSpacing": 800,
-                        "direction": "UD",
-                        "sortMethod": "directed",
-                        "treeSpacing": 800,
-                    },
-                    smooth=True,
-                    interaction={"doubleClick": False},
-                )
-
-                # Render the graph
-                clicked_node = agraph(
-                    nodes=ag_nodes, edges=ag_edges, config=config
-                )
-
-                if clicked_node:
-                    st.write("---")
-                    handle_node_click(
-                        clicked_node, ag_nodes, st.session_state.learning_plan
-                    )
-
-            except Exception as e:
-                st.error(f"Error generating diagram: {str(e)}")
-                st.write("### Learning Plan Overview")
-                st.write(st.session_state.learning_plan)
-
-        # Add helpful tips
-        with st.expander("💡 Tips for better results"):
-            st.write(
-                """
-                - Be specific about what aspects of the topic you want to learn
-                - Consider your current knowledge level when answering questions
-                - Provide context about your learning goals
-                - Mention any specific areas you find challenging
-                """
+            config = Config(
+                width=2600,
+                height=1400,
+                directed=True,
+                physics=False,
+                hierarchical={
+                    "enabled": True,
+                    "levelSeparation": 600,
+                    "nodeSpacing": 800,
+                    "direction": "UD",
+                    "sortMethod": "directed",
+                    "treeSpacing": 800,
+                },
+                smooth=True,
+                interaction={"doubleClick": False},
             )
 
-elif st.session_state.current_page == "latex":
-    try:
-        # Get the current directory
-        current_dir = os.path.dirname(os.path.abspath(__file__))
+            # Render the graph
+            clicked_node = agraph(nodes=ag_nodes, edges=ag_edges, config=config)
 
-        # Import the latex app
-        from latex_project.latex_app import run_latex_app
+            if clicked_node:
+                st.write("---")
+                handle_node_click(
+                    clicked_node, ag_nodes, st.session_state.learning_plan
+                )
 
-        # Run the app
-        run_latex_app()
+        except Exception as e:
+            st.error(f"Error generating diagram: {str(e)}")
+            st.write("### Learning Plan Overview")
+            st.write(st.session_state.learning_plan)
 
-    except Exception as e:
-        st.error(f"Error loading LaTeX converter: {str(e)}")
-        st.write("Debug info:")
-        st.write(f"Current directory: {current_dir}")
-        st.write("\nPlease check if these files exist:")
-        st.write(f"- {current_dir}/latex_project/latex_app.py")
-        st.write(f"- {current_dir}/latex_project/model_prompt.txt")
-        st.write(f"- {current_dir}/latex_project/start_boiler_plate.txt")
+    # Add helpful tips
+    with st.expander("💡 Tips for better results"):
+        st.write(
+            """
+            - Be specific about what aspects of the topic you want to learn
+            - Consider your current knowledge level when answering questions
+            - Provide context about your learning goals
+            - Mention any specific areas you find challenging
+            """
+        )
+
+# Remove all the elif st.session_state.current_page conditions and their content
