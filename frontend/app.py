@@ -160,14 +160,14 @@ def convert_to_graph_data(learning_plan):
     """Convert learning plan to agraph format with improved structure"""
     nodes = []
     edges = []
-    node_id = 0
+    node_counter = 0
 
     # Split into sections and clean up
     sections = [s.strip() for s in learning_plan.split("\n\n") if s.strip()]
 
     # Create main topic node (first line is typically the title)
     main_title = sections[0].strip()
-    main_node_id = f"node_{node_id}"
+    main_node_id = str(node_counter)  # Convert to string without 'node_' prefix
     nodes.append(
         {
             "id": main_node_id,
@@ -178,7 +178,7 @@ def convert_to_graph_data(learning_plan):
             },
         }
     )
-    node_id += 1
+    node_counter += 1
 
     # Track section nodes to improve layout
     section_nodes = []
@@ -189,7 +189,9 @@ def convert_to_graph_data(learning_plan):
             title, content = [x.strip() for x in section.split(":", 1)]
 
             # Create section node
-            section_node_id = f"node_{node_id}"
+            section_node_id = str(
+                node_counter
+            )  # Convert to string without 'node_' prefix
             nodes.append(
                 {
                     "id": section_node_id,
@@ -202,7 +204,7 @@ def convert_to_graph_data(learning_plan):
             )
             section_nodes.append(section_node_id)
             edges.append({"source": main_node_id, "target": section_node_id})
-            node_id += 1
+            node_counter += 1
 
             # Process bullet points
             bullet_points = [
@@ -211,10 +213,11 @@ def convert_to_graph_data(learning_plan):
                 if p.strip() and p.strip().startswith(("-", "•", "*"))
             ]
 
-            # Create nodes in a circular pattern around section node
             for point in bullet_points:
                 point_text = point.lstrip("-•* ").strip()
-                point_node_id = f"node_{node_id}"
+                point_node_id = str(
+                    node_counter
+                )  # Convert to string without 'node_' prefix
                 nodes.append(
                     {
                         "id": point_node_id,
@@ -228,7 +231,7 @@ def convert_to_graph_data(learning_plan):
                 edges.append(
                     {"source": section_node_id, "target": point_node_id}
                 )
-                node_id += 1
+                node_counter += 1
 
     return nodes, edges
 
@@ -329,6 +332,158 @@ Practical Implementation:
 Hands-on experience with popular ML libraries and frameworks. Building and deploying real machine learning models."""
 
 
+# Add these functions after your existing helper functions (get_node_size, get_node_color, etc.)
+# but before the main display code
+
+
+def ask_followup_question(topic):
+    """Handle follow-up questions about a specific topic"""
+    question = st.text_input(f"What would you like to know about {topic}?")
+
+    if question and st.button("Get Answer"):
+        messages = [
+            {
+                "role": "system",
+                "content": """You are an expert teacher. Provide a clear, detailed answer
+                to the user's question about a specific topic. Include examples where appropriate.""",
+            },
+            {
+                "role": "user",
+                "content": f"Topic: {topic}\nQuestion: {question}",
+            },
+        ]
+
+        if st.session_state.testing_mode:
+            # Mock response for testing
+            answer = f"""Here's a detailed explanation about {topic} addressing your question:
+            
+            The key points to understand are:
+            1. First important aspect
+            2. Second crucial element
+            3. Practical application
+            
+            For example, consider this real-world scenario..."""
+        else:
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=messages,
+                temperature=0.7,
+                max_tokens=500,
+            )
+            answer = response.choices[0].message.content.strip()
+
+        st.write("### Answer")
+        st.write(answer)
+
+
+def generate_subtopic_diagram(topic, original_plan):
+    """Generate a more detailed diagram for the selected subtopic"""
+    messages = [
+        {
+            "role": "system",
+            "content": """You are an expert teacher. Given a topic from a learning plan,
+            create a detailed breakdown of that specific topic. Format your response with
+            clear headings and bullet points, focusing only on this subtopic.""",
+        },
+        {
+            "role": "user",
+            "content": f"""From this learning plan:
+            {original_plan}
+            
+            Create a detailed breakdown of this specific topic: {topic}""",
+        },
+    ]
+
+    if st.session_state.testing_mode:
+        # Mock response for testing
+        subtopic_plan = f"""Detailed Breakdown: {topic}
+
+Core Components:
+- Component 1: Key details and explanation
+- Component 2: Further breakdown
+- Component 3: Specific elements
+
+Implementation Steps:
+- Step 1: Getting started
+- Step 2: Building understanding
+- Step 3: Advanced concepts
+
+Practical Examples:
+- Example 1: Real-world application
+- Example 2: Case study
+- Example 3: Practical scenario"""
+    else:
+        response = client.chat.completions.create(
+            model="gpt-4", messages=messages, temperature=0.7, max_tokens=1000
+        )
+        subtopic_plan = response.choices[0].message.content.strip()
+
+    # Convert the subtopic plan to a new diagram
+    nodes, edges = convert_to_graph_data(subtopic_plan)
+
+    # Create a new section for the subtopic diagram
+    st.write(f"### Detailed View: {topic}")
+
+    # Convert to agraph format and display
+    ag_nodes = [
+        Node(
+            id=node["id"],
+            label=node["data"]["title"],
+            size=get_node_size(node["data"]["type"]),
+            color=get_node_color(node["data"]["type"]),
+            shadow=True,
+            font=get_node_font(node["data"]["type"]),
+            borderWidth=2,
+            borderColor=get_border_color(node["data"]["type"]),
+            shape=get_node_shape(node["data"]["type"]),
+        )
+        for node in nodes
+    ]
+
+    ag_edges = [
+        Edge(
+            source=edge["source"],
+            target=edge["target"],
+            arrow=True,
+            color="#666666",
+            width=2,
+        )
+        for edge in edges
+    ]
+
+    config = Config(
+        width="100%",
+        height=500,
+        directed=True,
+        physics=True,
+        hierarchical=True,
+        smooth=True,
+    )
+
+    agraph(nodes=ag_nodes, edges=ag_edges, config=config)
+
+
+def handle_node_click(node_id, nodes, learning_plan):
+    """Handle click events on nodes"""
+    # Find the clicked node using string ID
+    clicked_node = next(
+        (node for node in nodes if node.id == str(node_id)), None
+    )
+    if not clicked_node:
+        return
+
+    # Create columns for the two options
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("🔍 Expand this topic"):
+            generate_subtopic_diagram(clicked_node.label, learning_plan)
+
+    with col2:
+        if st.button("❓ Ask a follow-up question"):
+            ask_followup_question(clicked_node.label)
+
+
 # Start with the interactive learning journey
 st.title("Interactive Learning Diagram Generator")
 
@@ -417,23 +572,13 @@ elif st.session_state.stage == "display":
                 Node(
                     id=node["id"],
                     label=node["data"]["title"],
-                    size=get_node_size(
-                        node["data"]["type"]
-                    ),  # Function to determine size based on type
-                    color=get_node_color(
-                        node["data"]["type"]
-                    ),  # Function to determine color based on type
+                    size=get_node_size(node["data"]["type"]),
+                    color=get_node_color(node["data"]["type"]),
                     shadow=True,
-                    font=get_node_font(
-                        node["data"]["type"]
-                    ),  # Function to determine font based on type
+                    font=get_node_font(node["data"]["type"]),
                     borderWidth=2,
-                    borderColor=get_border_color(
-                        node["data"]["type"]
-                    ),  # Function to determine border color
-                    shape=get_node_shape(
-                        node["data"]["type"]
-                    ),  # Function to determine shape based on type
+                    borderColor=get_border_color(node["data"]["type"]),
+                    shape=get_node_shape(node["data"]["type"]),
                 )
                 for node in nodes
             ]
@@ -442,51 +587,30 @@ elif st.session_state.stage == "display":
                 Edge(
                     source=edge["source"],
                     target=edge["target"],
-                    # Add arrow
                     arrow=True,
-                    # Style the edge
                     color="#666666",
                     width=2,
                 )
                 for edge in edges
             ]
 
-            # Configure the graph
             config = Config(
                 width="100%",
-                height=700,  # Increased height
+                height=700,
                 directed=True,
                 physics=True,
-                hierarchical=True,  # Enable hierarchical layout
+                hierarchical=True,
                 smooth=True,
-                physics_props={
-                    "hierarchicalRepulsion": {
-                        "centralGravity": 0.0,
-                        "springLength": 100,
-                        "springConstant": 0.01,
-                        "nodeDistance": 120,
-                        "damping": 0.09,
-                    },
-                    "solver": "hierarchicalRepulsion",
-                },
-                node_props={"scaling": {"min": 20, "max": 35}},
-                edge_props={
-                    "arrowStrikethrough": False,
-                    "smooth": {"type": "cubicBezier", "roundness": 0.5},
-                    "length": 250,
-                },
-                # Add hierarchical layout configuration
-                hierarchical_props={
-                    "enabled": True,
-                    "levelSeparation": 150,
-                    "nodeSpacing": 200,
-                    "treeSpacing": 200,
-                    "direction": "UD",  # Up to Down layout
-                },
             )
 
             # Render the graph
-            agraph(nodes=ag_nodes, edges=ag_edges, config=config)
+            clicked_node = agraph(nodes=ag_nodes, edges=ag_edges, config=config)
+
+            if clicked_node:
+                st.write(f"Selected node: {clicked_node}")  # Debug print
+                handle_node_click(
+                    clicked_node, ag_nodes, st.session_state.learning_plan
+                )
 
         except Exception as e:
             st.error(f"Error generating diagram: {str(e)}")
