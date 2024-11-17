@@ -5,8 +5,8 @@ import os
 import json
 from datetime import datetime
 import uuid
-import streamlit.components.v1 as components
-from streamlit_elements import elements, dashboard, mui, html, sync
+from streamlit_elements import elements, dashboard, mui, html, sync, nivo
+from streamlit_agraph import agraph, Node, Edge, Config
 
 # Load environment variables
 load_dotenv()
@@ -19,6 +19,43 @@ STORAGE_FILE = "data/prompt_history.json"
 
 # Ensure data directory exists
 os.makedirs("data", exist_ok=True)
+
+# Add these helper functions right after your imports and before the main code
+
+
+def get_node_size(node_type):
+    """Return node size based on hierarchy"""
+    return {"main": 35, "section": 30, "detail": 25}.get(node_type, 25)
+
+
+def get_node_color(node_type):
+    """Return visually distinct colors for different node types"""
+    return {"main": "#61CDB8", "section": "#F47560", "detail": "#FED766"}.get(
+        node_type, "#CCCCCC"
+    )
+
+
+def get_node_font(node_type):
+    """Return hierarchical font styling"""
+    return {
+        "main": {"size": 16, "color": "black", "bold": True},
+        "section": {"size": 14, "color": "black", "bold": True},
+        "detail": {"size": 12, "color": "black"},
+    }.get(node_type, {"size": 12, "color": "black"})
+
+
+def get_border_color(node_type):
+    """Return border colors for depth"""
+    return {"main": "#45B69C", "section": "#D65D4A", "detail": "#E6C25D"}.get(
+        node_type, "#999999"
+    )
+
+
+def get_node_shape(node_type):
+    """Return distinct shapes for different node types"""
+    return {"main": "hexagon", "section": "dot", "detail": "diamond"}.get(
+        node_type, "dot"
+    )
 
 
 def load_history():
@@ -119,69 +156,82 @@ Please create a detailed learning plan based on these responses.""",
     return response.choices[0].message.content.strip()
 
 
-def convert_to_reactflow_data(learning_plan):
-    """Convert learning plan to React Flow format"""
+def convert_to_graph_data(learning_plan):
+    """Convert learning plan to agraph format with improved structure"""
     nodes = []
     edges = []
-    y_position = 0
-    x_position = 400
+    node_counter = 0
 
-    # Split learning plan into sections
-    sections = learning_plan.split("\n\n")
+    # Split into sections and clean up
+    sections = [s.strip() for s in learning_plan.split("\n\n") if s.strip()]
 
-    # Create main node
+    # Create main topic node (first line is typically the title)
+    main_title = sections[0].strip()
+    main_node_id = str(node_counter)  # Convert to string without 'node_' prefix
     nodes.append(
         {
-            "id": "main",
-            "type": "custom",
-            "position": {"x": x_position, "y": y_position},
-            "data": {"title": "Main Topic", "content": sections[0]},
+            "id": main_node_id,
+            "data": {
+                "title": main_title,
+                "type": "main",
+                "content": main_title,
+            },
         }
     )
+    node_counter += 1
 
-    y_position += 150
+    # Track section nodes to improve layout
+    section_nodes = []
 
     # Process each section
-    for i, section in enumerate(sections[1:], 1):
-        if section.strip():
-            # Split section into title and content
-            if ":" in section:
-                title, content = section.split(":", 1)
-            else:
-                title = f"Topic {i}"
-                content = section
+    for section in sections[1:]:
+        if ":" in section:
+            title, content = [x.strip() for x in section.split(":", 1)]
 
-            # Create node
-            node_id = f"node-{i}"
-            x_offset = (i % 3 - 1) * 300
-
+            # Create section node
+            section_node_id = str(
+                node_counter
+            )  # Convert to string without 'node_' prefix
             nodes.append(
                 {
-                    "id": node_id,
-                    "type": "custom",
-                    "position": {"x": x_position + x_offset, "y": y_position},
+                    "id": section_node_id,
                     "data": {
-                        "title": title.strip(),
-                        "content": content.strip(),
+                        "title": title,
+                        "type": "section",
+                        "content": title,
                     },
                 }
             )
+            section_nodes.append(section_node_id)
+            edges.append({"source": main_node_id, "target": section_node_id})
+            node_counter += 1
 
-            # Create edge
-            edges.append(
-                {
-                    "id": f"edge-{i}",
-                    "source": "main",
-                    "target": node_id,
-                    "type": "smoothstep",
-                    "animated": True,
-                    "style": {"stroke": "#888"},
-                }
-            )
+            # Process bullet points
+            bullet_points = [
+                p.strip()
+                for p in content.split("\n")
+                if p.strip() and p.strip().startswith(("-", "•", "*"))
+            ]
 
-            # Adjust y_position for next row if needed
-            if i % 3 == 0:
-                y_position += 200
+            for point in bullet_points:
+                point_text = point.lstrip("-•* ").strip()
+                point_node_id = str(
+                    node_counter
+                )  # Convert to string without 'node_' prefix
+                nodes.append(
+                    {
+                        "id": point_node_id,
+                        "data": {
+                            "title": point_text,
+                            "type": "detail",
+                            "content": point_text,
+                        },
+                    }
+                )
+                edges.append(
+                    {"source": section_node_id, "target": point_node_id}
+                )
+                node_counter += 1
 
     return nodes, edges
 
@@ -250,6 +300,190 @@ export default LearningFlow;
 """
 
 
+# Add these mock data functions at the top after imports
+
+
+def get_mock_questions():
+    """Return mock clarifying questions"""
+    return [
+        "What is your current level of understanding in this topic?",
+        "What specific aspects are you most interested in?",
+        "How do you plan to apply this knowledge?",
+    ]
+
+
+def get_mock_learning_plan():
+    """Return a structured mock learning plan"""
+    return """Machine Learning Fundamentals
+
+Core Concepts:
+Understanding the basics of machine learning, including supervised and unsupervised learning approaches. This forms the foundation of all ML applications.
+
+Data Preprocessing:
+Learn how to prepare and clean data for machine learning models. This includes handling missing values, feature scaling, and normalization techniques.
+
+Model Selection:
+Explore different types of machine learning models and when to use them. From simple linear regression to complex neural networks.
+
+Evaluation Metrics:
+Understanding how to measure model performance using various metrics like accuracy, precision, and recall.
+
+Practical Implementation:
+Hands-on experience with popular ML libraries and frameworks. Building and deploying real machine learning models."""
+
+
+# Add these functions after your existing helper functions (get_node_size, get_node_color, etc.)
+# but before the main display code
+
+
+def ask_followup_question(topic):
+    """Handle follow-up questions about a specific topic"""
+    question = st.text_input(f"What would you like to know about {topic}?")
+
+    if question and st.button("Get Answer"):
+        messages = [
+            {
+                "role": "system",
+                "content": """You are an expert teacher. Provide a clear, detailed answer
+                to the user's question about a specific topic. Include examples where appropriate.""",
+            },
+            {
+                "role": "user",
+                "content": f"Topic: {topic}\nQuestion: {question}",
+            },
+        ]
+
+        if st.session_state.testing_mode:
+            # Mock response for testing
+            answer = f"""Here's a detailed explanation about {topic} addressing your question:
+            
+            The key points to understand are:
+            1. First important aspect
+            2. Second crucial element
+            3. Practical application
+            
+            For example, consider this real-world scenario..."""
+        else:
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=messages,
+                temperature=0.7,
+                max_tokens=500,
+            )
+            answer = response.choices[0].message.content.strip()
+
+        st.write("### Answer")
+        st.write(answer)
+
+
+def generate_subtopic_diagram(topic, original_plan):
+    """Generate a more detailed diagram for the selected subtopic"""
+    messages = [
+        {
+            "role": "system",
+            "content": """You are an expert teacher. Given a topic from a learning plan,
+            create a detailed breakdown of that specific topic. Format your response with
+            clear headings and bullet points, focusing only on this subtopic.""",
+        },
+        {
+            "role": "user",
+            "content": f"""From this learning plan:
+            {original_plan}
+            
+            Create a detailed breakdown of this specific topic: {topic}""",
+        },
+    ]
+
+    if st.session_state.testing_mode:
+        # Mock response for testing
+        subtopic_plan = f"""Detailed Breakdown: {topic}
+
+Core Components:
+- Component 1: Key details and explanation
+- Component 2: Further breakdown
+- Component 3: Specific elements
+
+Implementation Steps:
+- Step 1: Getting started
+- Step 2: Building understanding
+- Step 3: Advanced concepts
+
+Practical Examples:
+- Example 1: Real-world application
+- Example 2: Case study
+- Example 3: Practical scenario"""
+    else:
+        response = client.chat.completions.create(
+            model="gpt-4", messages=messages, temperature=0.7, max_tokens=1000
+        )
+        subtopic_plan = response.choices[0].message.content.strip()
+
+    # Convert the subtopic plan to a new diagram
+    nodes, edges = convert_to_graph_data(subtopic_plan)
+
+    # Create a new section for the subtopic diagram
+    st.write(f"### Detailed View: {topic}")
+
+    # Convert to agraph format and display
+    ag_nodes = [
+        Node(
+            id=node["id"],
+            label=node["data"]["title"],
+            size=get_node_size(node["data"]["type"]),
+            color=get_node_color(node["data"]["type"]),
+            shadow=True,
+            font=get_node_font(node["data"]["type"]),
+            borderWidth=2,
+            borderColor=get_border_color(node["data"]["type"]),
+            shape=get_node_shape(node["data"]["type"]),
+        )
+        for node in nodes
+    ]
+
+    ag_edges = [
+        Edge(
+            source=edge["source"],
+            target=edge["target"],
+            arrow=True,
+            color="#666666",
+            width=2,
+        )
+        for edge in edges
+    ]
+
+    config = Config(
+        width="100%",
+        height=500,
+        directed=True,
+        physics=True,
+        hierarchical=True,
+        smooth=True,
+    )
+
+    agraph(nodes=ag_nodes, edges=ag_edges, config=config)
+
+
+def handle_node_click(node_id, nodes, learning_plan):
+    """Handle click events on nodes"""
+    # Find the clicked node using string ID
+    clicked_node = next(
+        (node for node in nodes if node.id == str(node_id)), None
+    )
+    if not clicked_node:
+        return
+
+    # Create columns for the two options
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("🔍 Expand this topic"):
+            generate_subtopic_diagram(clicked_node.label, learning_plan)
+
+    with col2:
+        if st.button("❓ Ask a follow-up question"):
+            ask_followup_question(clicked_node.label)
+
+
 # Start with the interactive learning journey
 st.title("Interactive Learning Diagram Generator")
 
@@ -263,6 +497,11 @@ if "answers" not in st.session_state:
     st.session_state.answers = []
 
 if st.session_state.stage == "initial":
+    # Add a toggle for testing mode
+    st.session_state.testing_mode = st.checkbox(
+        "Enable Testing Mode", value=True
+    )
+
     user_prompt = st.text_area(
         "What topic would you like to learn about?",
         placeholder="Example: Neural Networks in Deep Learning",
@@ -271,7 +510,12 @@ if st.session_state.stage == "initial":
 
     if st.button("Start Learning Journey") and user_prompt:
         st.session_state.original_prompt = user_prompt
-        st.session_state.questions = get_initial_questions(user_prompt)
+        # Use mock questions if in testing mode
+        st.session_state.questions = (
+            get_mock_questions()
+            if st.session_state.testing_mode
+            else get_initial_questions(user_prompt)
+        )
         st.session_state.stage = "questioning"
         st.rerun()
 
@@ -279,27 +523,32 @@ elif st.session_state.stage == "questioning":
     st.write("### Let's understand your needs better")
     st.write(f"Topic: {st.session_state.original_prompt}")
 
+    # Add quick fill button for testing
+    if st.session_state.testing_mode and st.button("Fill with Mock Answers"):
+        st.session_state.learning_plan = get_mock_learning_plan()
+        st.session_state.stage = "display"
+        st.rerun()
+
     answers = []
     for q in st.session_state.questions:
         answer = st.text_input(q)
         answers.append(answer)
 
     if st.button("Generate Learning Plan") and all(answers):
-        # Generate learning plan
-        learning_plan = analyze_responses(
-            st.session_state.original_prompt,
-            st.session_state.questions,
-            answers,
+        # Use mock data if in testing mode
+        learning_plan = (
+            get_mock_learning_plan()
+            if st.session_state.testing_mode
+            else analyze_responses(
+                st.session_state.original_prompt,
+                st.session_state.questions,
+                answers,
+            )
         )
 
-        # Save to session state
         st.session_state.learning_plan = learning_plan
         st.session_state.last_prompt = st.session_state.original_prompt
-
-        # Save to history
         save_to_history(st.session_state.original_prompt, learning_plan)
-
-        # Move to display stage
         st.session_state.stage = "display"
         st.rerun()
 
@@ -309,57 +558,64 @@ elif st.session_state.stage == "display":
         st.session_state.stage = "initial"
         st.rerun()
 
-    st.title(st.session_state.original_prompt)
+    with st.container():
+        st.title(st.session_state.original_prompt)
 
-    with st.expander("📋 Learning Plan", expanded=True):
-        st.write(st.session_state.learning_plan)
+        with st.expander("📋 Learning Plan", expanded=True):
+            st.write(st.session_state.learning_plan)
 
-    try:
-        # Convert learning plan to React Flow format
-        flow_data = convert_to_reactflow_data(st.session_state.learning_plan)
+        try:
+            nodes, edges = convert_to_graph_data(st.session_state.learning_plan)
 
-        # Create dashboard layout
-        with elements("learning_diagram"):
-            # Add required CSS
-            elements.html(
-                """
-                <link href="https://unpkg.com/reactflow@11.10.1/dist/style.css" rel="stylesheet" />
-                <style>
-                    .react-flow__node {
-                        cursor: grab;
-                    }
-                    .react-flow__node:active {
-                        cursor: grabbing;
-                    }
-                </style>
-            """
+            # Convert to agraph format
+            ag_nodes = [
+                Node(
+                    id=node["id"],
+                    label=node["data"]["title"],
+                    size=get_node_size(node["data"]["type"]),
+                    color=get_node_color(node["data"]["type"]),
+                    shadow=True,
+                    font=get_node_font(node["data"]["type"]),
+                    borderWidth=2,
+                    borderColor=get_border_color(node["data"]["type"]),
+                    shape=get_node_shape(node["data"]["type"]),
+                )
+                for node in nodes
+            ]
+
+            ag_edges = [
+                Edge(
+                    source=edge["source"],
+                    target=edge["target"],
+                    arrow=True,
+                    color="#666666",
+                    width=2,
+                )
+                for edge in edges
+            ]
+
+            config = Config(
+                width="100%",
+                height=700,
+                directed=True,
+                physics=True,
+                hierarchical=True,
+                smooth=True,
             )
 
-            # Create layout
-            layout = [dashboard.Item("diagram", 0, 0, 12, 6)]
+            # Render the graph
+            clicked_node = agraph(nodes=ag_nodes, edges=ag_edges, config=config)
 
-            with dashboard.Grid(layout):
-                with mui.Paper(
-                    elevation=3,
-                    sx={
-                        "height": "600px",
-                        "overflow": "hidden",
-                        "borderRadius": 2,
-                        "p": 2,
-                        "bgcolor": "#f5f5f5",
-                    },
-                ):
-                    # Mount the React Flow component
-                    elements.declare_component(
-                        "LearningFlow",
-                        create_flow_component(),
-                        props={"data": flow_data},
-                    )
+            if clicked_node:
+                st.write(f"Selected node: {clicked_node}")  # Debug print
+                handle_node_click(
+                    clicked_node, ag_nodes, st.session_state.learning_plan
+                )
 
-    except Exception as e:
-        st.error(f"Error generating diagram: {str(e)}")
-        st.write("### Learning Plan Overview")
-        st.write(st.session_state.learning_plan)
+        except Exception as e:
+            st.error(f"Error generating diagram: {str(e)}")
+            st.write("### Learning Plan Overview")
+            st.write(st.session_state.learning_plan)
 
 # Add helpful tips
 with st.expander("💡 Tips for better results"):
