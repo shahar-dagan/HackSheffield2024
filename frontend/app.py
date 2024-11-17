@@ -636,6 +636,44 @@ def get_unsplash_image(query):
         return None, None
 
 
+# Add this helper function for the copy button
+def create_copy_button(text: str, button_text: str = "📋 Copy to clipboard"):
+    """Create a copy button for the given text"""
+    st.markdown(
+        f"""
+        <style>
+        .copy-button {{
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # JavaScript for copying to clipboard
+    copy_js = f"""
+        <script>
+        function copyToClipboard() {{
+            const text = `{text}`;
+            navigator.clipboard.writeText(text);
+            alert('LaTeX code copied to clipboard!');
+        }}
+        </script>
+        <button class="copy-button" onclick="copyToClipboard()">{button_text}</button>
+    """
+    st.markdown(copy_js, unsafe_allow_html=True)
+
+
 # Modify the sidebar to remove navigation buttons
 with st.sidebar:
     st.write("### Previous Topics")
@@ -690,9 +728,50 @@ if st.session_state.stage == "initial":
 
     # Process LaTeX if uploaded
     if uploaded_image_data:
-        # LaTeX processing code...
-        if latex_code:
-            st.session_state.latex_code = latex_code
+        try:
+            # Convert the uploaded image to base64
+            image_bytes = uploaded_image_data.getvalue()
+            uploaded_image = Image.open(io.BytesIO(image_bytes))
+
+            # Display the uploaded image
+            st.image(
+                uploaded_image,
+                caption="Uploaded Math Expression",
+                use_container_width=True,
+            )
+
+            # Resize and process image for LaTeX conversion
+            desired_resolution = (512, 512)
+            uploaded_image = uploaded_image.resize(desired_resolution)
+
+            # Convert to base64
+            buffer = io.BytesIO()
+            file_format = uploaded_image_data.type.split("/")[1].upper()
+            uploaded_image.save(buffer, format=file_format)
+            buffer.seek(0)
+            encoded_image = base64.b64encode(buffer.read()).decode("utf-8")
+
+            # Use the LaTeX conversion function from latex_app
+            from latex_project.latex_app import convert_image_to_latex_code
+
+            latex_code = convert_image_to_latex_code(
+                encoded_image, file_format.lower()
+            )
+
+            if latex_code:
+                st.session_state.latex_code = latex_code
+
+                # Display LaTeX code with copy button
+                st.markdown("### 📐 Generated LaTeX Code")
+                st.markdown("```latex\n" + latex_code + "\n```")
+                create_copy_button(latex_code)
+
+                # Show preview
+                st.markdown("### Preview")
+                st.latex(latex_code)
+
+        except Exception as e:
+            st.error(f"Error processing image: {str(e)}")
 
     # Begin button
     if st.button("Begin", type="primary") and user_prompt:
@@ -725,8 +804,17 @@ elif st.session_state.stage == "questioning":
 
     # If there's LaTeX code, display it after the image
     if hasattr(st.session_state, "latex_code") and st.session_state.latex_code:
-        st.markdown("### 📐 Including this mathematical expression:")
-        st.code(st.session_state.latex_code, language="latex")
+        st.markdown("### 📐 Generated LaTeX Code")
+
+        # Display the code in a markdown block
+        st.markdown("```latex\n" + st.session_state.latex_code + "\n```")
+
+        # Add the copy button below the code block
+        create_copy_button(st.session_state.latex_code)
+
+        # Show preview if applicable
+        st.markdown("### Preview")
+        st.latex(st.session_state.latex_code)
 
     # Get current question
     current_q = st.session_state.current_question
