@@ -20,6 +20,43 @@ STORAGE_FILE = "data/prompt_history.json"
 # Ensure data directory exists
 os.makedirs("data", exist_ok=True)
 
+# Add these helper functions right after your imports and before the main code
+
+
+def get_node_size(node_type):
+    """Return node size based on hierarchy"""
+    return {"main": 35, "section": 30, "detail": 25}.get(node_type, 25)
+
+
+def get_node_color(node_type):
+    """Return visually distinct colors for different node types"""
+    return {"main": "#61CDB8", "section": "#F47560", "detail": "#FED766"}.get(
+        node_type, "#CCCCCC"
+    )
+
+
+def get_node_font(node_type):
+    """Return hierarchical font styling"""
+    return {
+        "main": {"size": 16, "color": "black", "bold": True},
+        "section": {"size": 14, "color": "black", "bold": True},
+        "detail": {"size": 12, "color": "black"},
+    }.get(node_type, {"size": 12, "color": "black"})
+
+
+def get_border_color(node_type):
+    """Return border colors for depth"""
+    return {"main": "#45B69C", "section": "#D65D4A", "detail": "#E6C25D"}.get(
+        node_type, "#999999"
+    )
+
+
+def get_node_shape(node_type):
+    """Return distinct shapes for different node types"""
+    return {"main": "hexagon", "section": "dot", "detail": "diamond"}.get(
+        node_type, "dot"
+    )
+
 
 def load_history():
     """Load existing history from JSON file"""
@@ -119,36 +156,37 @@ Please create a detailed learning plan based on these responses.""",
     return response.choices[0].message.content.strip()
 
 
-def convert_to_reactflow_data(learning_plan):
-    """Convert learning plan to graph format with improved visualization"""
+def convert_to_graph_data(learning_plan):
+    """Convert learning plan to agraph format with improved structure"""
     nodes = []
     edges = []
     node_id = 0
 
-    # Split the learning plan into sections
-    sections = learning_plan.split("\n\n")
+    # Split into sections and clean up
+    sections = [s.strip() for s in learning_plan.split("\n\n") if s.strip()]
 
-    # Create main topic node
+    # Create main topic node (first line is typically the title)
     main_title = sections[0].strip()
+    main_node_id = f"node_{node_id}"
     nodes.append(
         {
-            "id": f"node_{node_id}",
+            "id": main_node_id,
             "data": {
                 "title": main_title,
-                "type": "main",  # Add type for different styling
+                "type": "main",
                 "content": main_title,
             },
         }
     )
-    main_node_id = f"node_{node_id}"
     node_id += 1
+
+    # Track section nodes to improve layout
+    section_nodes = []
 
     # Process each section
     for section in sections[1:]:
         if ":" in section:
-            # Get section title and content
-            title, content = section.split(":", 1)
-            title = title.strip()
+            title, content = [x.strip() for x in section.split(":", 1)]
 
             # Create section node
             section_node_id = f"node_{node_id}"
@@ -158,35 +196,35 @@ def convert_to_reactflow_data(learning_plan):
                     "data": {
                         "title": title,
                         "type": "section",
-                        "content": content.strip(),
+                        "content": title,
                     },
                 }
             )
-
-            # Connect to main node
+            section_nodes.append(section_node_id)
             edges.append({"source": main_node_id, "target": section_node_id})
             node_id += 1
 
-            # Process bullet points in content
+            # Process bullet points
             bullet_points = [
-                point.strip()
-                for point in content.split("\n")
-                if point.strip().startswith("-")
+                p.strip()
+                for p in content.split("\n")
+                if p.strip() and p.strip().startswith(("-", "•", "*"))
             ]
+
+            # Create nodes in a circular pattern around section node
             for point in bullet_points:
+                point_text = point.lstrip("-•* ").strip()
                 point_node_id = f"node_{node_id}"
                 nodes.append(
                     {
                         "id": point_node_id,
                         "data": {
-                            "title": point.lstrip("- "),
-                            "type": "detail",  # Add type for different styling
-                            "content": point.lstrip("- "),
+                            "title": point_text,
+                            "type": "detail",
+                            "content": point_text,
                         },
                     }
                 )
-
-                # Connect to section node
                 edges.append(
                     {"source": section_node_id, "target": point_node_id}
                 )
@@ -372,9 +410,7 @@ elif st.session_state.stage == "display":
             st.write(st.session_state.learning_plan)
 
         try:
-            nodes, edges = convert_to_reactflow_data(
-                st.session_state.learning_plan
-            )
+            nodes, edges = convert_to_graph_data(st.session_state.learning_plan)
 
             # Convert to agraph format
             ag_nodes = [
@@ -491,34 +527,3 @@ with st.sidebar:
                 st.session_state.original_prompt = entry["prompt"]
                 st.session_state.stage = "display"
                 st.rerun()
-
-
-# Helper functions for node styling
-def get_node_size(node_type):
-    return {"main": 35, "section": 30, "detail": 25}.get(node_type, 25)
-
-
-def get_node_color(node_type):
-    return {"main": "#61CDB8", "section": "#F47560", "detail": "#FED766"}.get(
-        node_type, "#CCCCCC"
-    )
-
-
-def get_node_font(node_type):
-    return {
-        "main": {"size": 16, "color": "black", "bold": True},
-        "section": {"size": 14, "color": "black", "bold": True},
-        "detail": {"size": 12, "color": "black"},
-    }.get(node_type, {"size": 12, "color": "black"})
-
-
-def get_border_color(node_type):
-    return {"main": "#45B69C", "section": "#D65D4A", "detail": "#E6C25D"}.get(
-        node_type, "#999999"
-    )
-
-
-def get_node_shape(node_type):
-    return {"main": "hexagon", "section": "dot", "detail": "diamond"}.get(
-        node_type, "dot"
-    )
