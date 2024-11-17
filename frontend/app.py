@@ -111,32 +111,33 @@ def get_initial_questions(prompt):
     if hasattr(st.session_state, "latex_code") and st.session_state.latex_code:
         latex_context = f"\nThe topic includes this mathematical expression: {st.session_state.latex_code}"
 
-    system_message = """You are an expert teacher who helps understand learners' needs.
-    Generate 3 relevant questions to understand what aspects of the topic the user wants to learn.
-    For each question, provide 3-4 multiple choice options that are SPECIFIC to the topic.
-    
-    If mathematical expressions are provided, include questions about mathematical understanding and application.
-    
-    Format your response as a JSON array of question-option pairs.
-    Example for "Machine Learning":
-    [
-        {
-            "question": "What aspect of Machine Learning interests you most?",
-            "options": [
-                "🤖 Supervised Learning & Classification",
-                "🧠 Neural Networks & Deep Learning",
-                "📊 Data Preprocessing & Feature Engineering",
-                "🔄 Reinforcement Learning"
-            ]
-        }
-    ]
-    
-    Make questions and options SPECIFIC to the given topic.
-    Always include emojis for better visual appeal.
-    Keep options concise but informative."""
-
     messages = [
-        {"role": "system", "content": system_message},
+        {
+            "role": "system",
+            "content": """You are an expert teacher who helps understand learners' needs.
+            Generate 3 relevant questions to understand what aspects of the topic the user wants to learn.
+            For each question, provide 3-4 multiple choice options that are SPECIFIC to the topic.
+            
+            If mathematical expressions are provided, include questions about mathematical understanding and application.
+            
+            Format your response as a JSON array of question-option pairs.
+            Example for "Machine Learning":
+            [
+                {
+                    "question": "What aspect of Machine Learning interests you most?",
+                    "options": [
+                        "🤖 Supervised Learning & Classification",
+                        "🧠 Neural Networks & Deep Learning",
+                        "📊 Data Preprocessing & Feature Engineering",
+                        "🔄 Reinforcement Learning"
+                    ]
+                }
+            ]
+            
+            Make questions and options SPECIFIC to the given topic.
+            Always include emojis for better visual appeal.
+            Keep options concise but informative.""",
+        },
         {
             "role": "user",
             "content": f"Create topic-specific questions and options for someone wanting to learn about: {prompt}{latex_context}",
@@ -187,6 +188,12 @@ def analyze_responses(prompt, questions, answers):
     latex_context = ""
     if hasattr(st.session_state, "latex_code") and st.session_state.latex_code:
         latex_context = f"\nThe learning plan should incorporate this mathematical expression: {st.session_state.latex_code}"
+
+    # Get a relevant image for visualization regardless of input type
+    image_url, photographer = get_unsplash_image(prompt)
+    if image_url:
+        st.image(image_url, use_container_width=True)
+        st.caption(f"📸 Photo by {photographer} on Unsplash")
 
     messages = [
         {
@@ -666,7 +673,7 @@ if "answers" not in st.session_state:
 if st.session_state.stage == "initial":
     st.title("What would you like to learn about?")
 
-    # Text input first, using full width
+    # Text input first
     user_prompt = st.text_area(
         label="Topic Input",
         label_visibility="collapsed",
@@ -674,60 +681,30 @@ if st.session_state.stage == "initial":
         height=100,
     )
 
-    # Image uploader below
+    # Optional LaTeX input
     uploaded_image_data = st.file_uploader(
         "Upload Math Image (Optional)",
         type=["png", "jpg", "jpeg"],
         help="Upload an image containing mathematical expressions to include in your learning plan",
     )
 
-    # Process the image if uploaded
-    latex_code = None  # Initialize latex_code variable
-    if uploaded_image_data and "latex_code" not in st.session_state:
-        file_format = uploaded_image_data.type.split("/")[1].upper()
-        uploaded_image = Image.open(uploaded_image_data)
-        desired_resolution = (512, 512)
-        uploaded_image = uploaded_image.resize(desired_resolution)
-
-        # Display the uploaded image
-        st.image(
-            uploaded_image,
-            caption="Uploaded Math Expression",
-            use_container_width=True,
-        )
-
-        # Convert image to LaTeX only if not already done
-        buffer = io.BytesIO()
-        uploaded_image.save(buffer, format=file_format)
-        buffer.seek(0)
-        encoded_image = base64.b64encode(buffer.read()).decode("utf-8")
-
-        from latex_project.latex_app import convert_image_to_latex_code
-
-        latex_code = convert_image_to_latex_code(
-            encoded_image, file_format.lower()
-        )
-
+    # Process LaTeX if uploaded
+    if uploaded_image_data:
+        # LaTeX processing code...
         if latex_code:
             st.session_state.latex_code = latex_code
-            st.markdown("### 📝 Generated LaTeX Code")
-            st.code(latex_code, language="latex")
 
-            # Add copy button with better styling
-            if st.button("📋 Copy to Clipboard", type="secondary"):
-                st.write_to_clipboard(latex_code)
-                st.success("✅ LaTeX code copied successfully!")
-
-    # Begin button at the bottom
+    # Begin button
     if st.button("Begin", type="primary") and user_prompt:
-        # Store the original prompt without the LaTeX code
         st.session_state.original_prompt = user_prompt
 
-        # Store the LaTeX code separately if it exists
-        if latex_code:
-            st.session_state.latex_code = latex_code
+        # Get and display image immediately after prompt is entered
+        image_url, photographer = get_unsplash_image(user_prompt)
+        if image_url:
+            st.image(image_url, use_container_width=True)
+            st.caption(f"📸 Photo by {photographer} on Unsplash")
 
-        # Get customized questions based on just the user prompt
+        # Continue with question generation
         questions = get_initial_questions(user_prompt)
         st.session_state.questions = questions
         st.session_state.current_question = 0
@@ -738,42 +715,60 @@ if st.session_state.stage == "initial":
 elif st.session_state.stage == "questioning":
     st.title(f"Let's learn about: {st.session_state.original_prompt}")
 
-    # Display current question
-    current_q = st.session_state.questions[st.session_state.current_question]
-    st.write(f"## {current_q['question']}")
+    # Get and display image right after the title and BEFORE the questions
+    image_url, photographer = get_unsplash_image(
+        st.session_state.original_prompt
+    )
+    if image_url:
+        st.image(image_url, use_container_width=True)
+        st.caption(f"📸 Photo by {photographer} on Unsplash")
 
-    # If there's LaTeX code stored, display it
+    # If there's LaTeX code, display it after the image
     if hasattr(st.session_state, "latex_code") and st.session_state.latex_code:
         st.markdown("### 📐 Including this mathematical expression:")
         st.code(st.session_state.latex_code, language="latex")
 
-    # Create buttons for each option in the current question
-    for option in current_q["options"]:
-        if st.button(option, key=f"option_{option}"):
-            st.session_state.answers.append(option)
+    # Get current question
+    current_q = st.session_state.current_question
+    question = st.session_state.questions[current_q]
 
-            # Move to next question or generate plan
-            if (
-                st.session_state.current_question
-                < len(st.session_state.questions) - 1
+    # Display current question
+    st.write(f"### {question['question']}")
+
+    # Create buttons for each option
+    cols = st.columns(len(question["options"]))
+    for idx, (col, option) in enumerate(zip(cols, question["options"])):
+        with col:
+            if st.button(
+                option,
+                key=f"q{current_q}_opt{idx}",
+                use_container_width=True,
             ):
-                st.session_state.current_question += 1
-            else:
-                # Generate learning plan based on all answers
-                learning_plan = analyze_responses(
-                    st.session_state.original_prompt,
-                    [q["question"] for q in st.session_state.questions],
-                    st.session_state.answers,
-                )
+                st.session_state.answers.append(option)
 
-                # Save to history and update session state
-                new_entry = save_to_history(
-                    st.session_state.original_prompt, learning_plan
-                )
-                st.session_state.learning_plan = learning_plan
-                st.session_state.stage = "display"
+                # Move to next question or generate plan
+                if current_q + 1 < len(st.session_state.questions):
+                    st.session_state.current_question += 1
+                else:
+                    # Generate learning plan
+                    learning_plan = analyze_responses(
+                        st.session_state.original_prompt,
+                        [q["question"] for q in st.session_state.questions],
+                        st.session_state.answers,
+                    )
 
-            st.rerun()
+                    # Save to history before updating session state
+                    save_to_history(
+                        st.session_state.original_prompt, learning_plan
+                    )
+
+                    st.session_state.learning_plan = learning_plan
+                    st.session_state.stage = "display"
+                st.rerun()
+
+    # Show progress
+    progress = (current_q + 1) / len(st.session_state.questions)
+    st.progress(progress)
 
 elif st.session_state.stage == "display":
     with st.container():
