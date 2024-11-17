@@ -558,9 +558,6 @@ def handle_node_click(node_id, nodes, learning_plan):
             ask_followup_question(clicked_node.label)
 
 
-# Start with the interactive learning journey
-st.title("Interactive Learning Diagram Generator")
-
 if "stage" not in st.session_state:
     st.session_state.stage = "initial"
 
