@@ -661,10 +661,7 @@ if st.session_state.current_page == "main":
             height=100,
         )
 
-        # Horizontal line for visual separation
-        st.markdown("---")
-
-        # Image uploader below, with help text
+        # Image uploader below
         uploaded_image_data = st.file_uploader(
             "Upload Math Image (Optional)",
             type=["png", "jpg", "jpeg"],
