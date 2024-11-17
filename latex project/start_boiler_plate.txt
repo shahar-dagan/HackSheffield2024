@@ -1,0 +1,15 @@
+\documentclass{article}
+\usepackage{amsmath}  % Improves typographic quality of mathematical output.
+\usepackage{amsthm} %
+\usepackage{amssymb} % Extended set of mathematical symbols.
+\usepackage{amsfonts} % For mathematical fonts.
+\usepackage{graphicx} % For including graphics (via \includegraphics).
+\usepackage[english]{babel}
+\usepackage{enumerate} % The change the numbering in enumerate
+\usepackage{listings} % Include the listings environment
+\usepackage{subfigure}% Several figures in one figure
+\usepackage[pagebackref]{hyperref} % Automatic inclusion of hyperlinks with back references.
+
+\title{Maths Notes \today}
+\begin{document}
+\maketitle

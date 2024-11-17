@@ -1,0 +1,27 @@
+\documentclass{article}
+\usepackage{amsmath}  % Improves typographic quality of mathematical output.
+\usepackage{amsthm} %
+\usepackage{amssymb} % Extended set of mathematical symbols.
+\usepackage{amsfonts} % For mathematical fonts.
+\usepackage{graphicx} % For including graphics (via \includegraphics).
+\usepackage[english]{babel}
+\usepackage{enumerate} % The change the numbering in enumerate
+\usepackage{listings} % Include the listings environment
+\usepackage{subfigure}% Several figures in one figure
+\usepackage[pagebackref]{hyperref} % Automatic inclusion of hyperlinks with back references.
+
+\title{Maths Notes \today}
+\begin{document}
+\maketitle
+\begin{align}
+	\begin{bmatrix}
+		a & b \\
+		c & d
+	\end{bmatrix}^T = \frac{1}{ad - bc} \begin{bmatrix}
+		d & -b \\
+		-c & a
+	\end{bmatrix} \quad &\text{(Transpose of a matrix and its inverse)} \\ 
+	\forall M \in M_2(\mathbb{R}), \ |M| \neq 0 \quad &\text{(Condition for invertibility)} \\ 
+	\exists M \in M_2(\mathbb{R}) : M^{-1} = I_2 \quad &\text{(Existence of an inverse matrix)}
+\end{align}
+\end{document}

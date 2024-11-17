@@ -1,0 +1,34 @@
+{
+    "id": "chatcmpl-AUUqw92KbnaWrNlW05o9lJpnZ38Ua",
+    "choices": [
+        {
+            "finish_reason": "stop",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+                "content": "```latex\n\\documentclass{article}\n\\usepackage{amsmath}\n\\title{Maths Notes \\today}\n\\begin{document}\n\\maketitle\n\nThe following equations represent the determinant of a 2x2 matrix. \n\n\\[\n\\begin{bmatrix}\na & b \\\\\nc & d\n\\end{bmatrix}\n=\n\\frac{1}{ad - bc}\n\\begin{bmatrix}\nd & -b \\\\\n-c & a\n\\end{bmatrix}\n\\]\n\nThis shows the formula for the inverse of a 2x2 matrix, where the determinant is \\( ad - bc \\).\n\nNext, we state a condition for matrices in \\( M_2(\\mathbb{R}) \\):\n\n\\[\n\\forall M \\in M_2(\\mathbb{R}), \\quad |M| \\neq 0 \\Rightarrow\n\\]\n\nThis indicates that if the determinant of matrix \\( M \\) is non-zero, then the following holds:\n\n\\[\nE_{M^{-1}} = E_{M}^{-1} \\quad : \\quad M \\cdot M^{-1} = M^{-1} \\cdot M = I_2\n\\]\n\nThis expresses that the inverse of a matrix multiplied by the matrix itself yields the identity matrix \\( I_2 \\).\n\n\\end{document}\n```",
+                "refusal": null,
+                "role": "assistant"
+            }
+        }
+    ],
+    "created": 1731831802,
+    "model": "gpt-4o-mini-2024-07-18",
+    "object": "chat.completion",
+    "system_fingerprint": "fp_9b78b61c52",
+    "usage": {
+        "completion_tokens": 279,
+        "prompt_tokens": 8672,
+        "total_tokens": 8951,
+        "completion_tokens_details": {
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cached_tokens": 0
+        }
+    }
+}

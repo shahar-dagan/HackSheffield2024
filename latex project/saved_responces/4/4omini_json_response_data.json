@@ -1,0 +1,34 @@
+{
+    "id": "chatcmpl-AUVjzYC8SyGhsh9cyK82r8GgdX3Gu",
+    "choices": [
+        {
+            "finish_reason": "stop",
+            "index": 0,
+            "logprobs": null,
+            "message": {
+                "content": "```latex\n\\begin{align}\n0 & = x^2 + bx + c \\quad \\text{(Standard form of a quadratic equation)} \\\\\n0 & = \\left( x + \\frac{b}{2} \\right)^2 - \\left( \\frac{b}{2} \\right)^2 + c \\quad \\text{(Completing the square)} \\\\\n\\frac{b^2 - 4c}{4} & = \\left( x + \\frac{b}{2} \\right)^2 \\quad \\text{(Isolating the square term)} \\\\\nx & = \\frac{b}{2} \\pm \\sqrt{\\frac{b^2 - 4c}{4}} \\quad \\text{(Taking the square root)} \\\\\nx & = \\frac{b \\pm \\sqrt{b^2 - 4c}}{2} \\quad \\text{(Simplifying the expression)}\n\\end{align}\n```",
+                "refusal": null,
+                "role": "assistant"
+            }
+        }
+    ],
+    "created": 1731835215,
+    "model": "gpt-4o-mini-2024-07-18",
+    "object": "chat.completion",
+    "system_fingerprint": "fp_9b78b61c52",
+    "usage": {
+        "completion_tokens": 208,
+        "prompt_tokens": 8695,
+        "total_tokens": 8903,
+        "completion_tokens_details": {
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cached_tokens": 0
+        }
+    }
+}

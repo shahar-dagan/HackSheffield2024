@@ -1,0 +1,50 @@
+\documentclass{article}
+
+
+\usepackage{amsmath}  % Improves typographic quality of mathematical output.
+\usepackage{amsthm} %
+\usepackage{amssymb} % Extended set of mathematical symbols.
+\usepackage{amsfonts} % For mathematical fonts.
+\usepackage{graphicx} % For including graphics (via \includegraphics).
+\usepackage[english]{babel}
+\usepackage{enumerate} % The change the numbering in enumerate
+\usepackage{listings} % Include the listings environment
+\usepackage{subfigure}% Several figures in one figure
+\usepackage[pagebackref]{hyperref} % Automatic inclusion of hyperlinks with back references.
+
+\title{Maths Notes \today}
+\begin{document}
+\maketitle
+
+The following equations represent the determinant of a 2x2 matrix. 
+
+\[
+\begin{bmatrix}
+a & b \\
+c & d
+\end{bmatrix}
+=
+\frac{1}{ad - bc}
+\begin{bmatrix}
+d & -b \\
+-c & a
+\end{bmatrix}
+\]
+
+This shows the formula for the inverse of a 2x2 matrix, where the determinant is \( ad - bc \).
+
+Next, we state a condition for matrices in \( M_2(\mathbb{R}) \):
+
+\[
+\forall M \in M_2(\mathbb{R}), \quad |M| \neq 0 \Rightarrow
+\]
+
+This indicates that if the determinant of matrix \( M \) is non-zero, then the following holds:
+
+\[
+E_{M^{-1}} = E_{M}^{-1} \quad : \quad M \cdot M^{-1} = M^{-1} \cdot M = I_2
+\]
+
+This expresses that the inverse of a matrix multiplied by the matrix itself yields the identity matrix \( I_2 \).
+
+\end{document}
