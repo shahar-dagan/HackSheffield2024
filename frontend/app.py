@@ -7,6 +7,8 @@ from datetime import datetime
 import uuid
 from streamlit_elements import elements, dashboard, mui, html, sync, nivo
 from streamlit_agraph import agraph, Node, Edge, Config
+import requests
+from urllib.parse import quote
 
 # Set the page layout to wide
 st.set_page_config(layout="wide")
@@ -609,6 +611,31 @@ def wrap_text(text, max_chars=30):
     return "\n".join(lines)
 
 
+def get_unsplash_image(query):
+    """Get a relevant image from Unsplash API"""
+    UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY")
+
+    encoded_query = quote(query)
+    url = f"https://api.unsplash.com/search/photos?query={encoded_query}&per_page=1"
+
+    headers = {
+        "Authorization": f"Client-ID {UNSPLASH_ACCESS_KEY}",
+        "Accept-Version": "v1",
+    }
+
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("results") and len(data["results"]) > 0:
+                image_url = data["results"][0]["urls"]["regular"]
+                photographer = data["results"][0]["user"]["name"]
+                return image_url, photographer
+        return None, None
+    except Exception as e:
+        return None, None
+
+
 if "stage" not in st.session_state:
     st.session_state.stage = "initial"
 
@@ -622,7 +649,8 @@ if st.session_state.stage == "initial":
     st.title("What would you like to learn about?")
 
     user_prompt = st.text_area(
-        "",  # No label, keeping it clean
+        label="Topic Input",  # Added label
+        label_visibility="collapsed",  # Hide the label
         placeholder="Example: Machine Learning for Beginners",
         height=100,
     )
@@ -642,6 +670,17 @@ if st.session_state.stage == "initial":
 
 elif st.session_state.stage == "questioning":
     st.title(f"Let's learn about: {st.session_state.original_prompt}")
+
+    # Add image right after the title
+    image_url, photographer = get_unsplash_image(
+        st.session_state.original_prompt
+    )
+    if image_url:
+        st.image(
+            image=image_url,
+            use_container_width=True,
+            caption=f"📸 Photo by {photographer} on Unsplash",
+        )
 
     current_q = st.session_state.current_question
     question = st.session_state.questions[current_q]
@@ -683,13 +722,16 @@ elif st.session_state.stage == "questioning":
     st.progress(progress)
 
 elif st.session_state.stage == "display":
-    if "learning_plan" not in st.session_state:
-        st.error("No learning plan found. Please start over.")
-        st.session_state.stage = "initial"
-        st.rerun()
-
     with st.container():
         st.title(st.session_state.original_prompt)
+
+        # Get and display relevant image
+        image_url, photographer = get_unsplash_image(
+            st.session_state.original_prompt
+        )
+        if image_url:
+            st.image(image_url, use_column_width=True)
+            st.caption(f"📸 Photo by {photographer} on Unsplash")
 
         # Improve text formatting with a max-width container and better spacing
         st.markdown(
